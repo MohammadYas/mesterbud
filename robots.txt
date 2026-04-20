@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /tilbud-ny.html
+Disallow: /tilbud-rediger.html
+Disallow: /tilbud-preview.html
+Disallow: /konto.html
+Disallow: /login.html
+Disallow: /.netlify/
+
+Sitemap: https://mesterbud.dk/sitemap.xml
