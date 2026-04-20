@@ -75,10 +75,24 @@ exports.handler = async (event, context) => {
       },
     });
 
+    // Hent afsenderens email fra profil (så reply går direkte til håndværkeren)
+    let afsenderEmail = '';
+    try {
+      const profilRaw = await store.get(`profil/${user.sub}`);
+      if (profilRaw) {
+        const profil = JSON.parse(profilRaw);
+        afsenderEmail = profil.virksomhed?.email || '';
+      }
+    } catch {}
+
+    // From: "FirmaNavn <noreply@mesterbud.dk>" — Reply-To: håndværkerens email
+    const fromDisplay = firma ? `${firma} via Mesterbud <${process.env.SMTP_USER || 'noreply@mesterbud.dk'}>` : `Mesterbud <${process.env.SMTP_USER || 'noreply@mesterbud.dk'}>`;
+
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || `${firma || 'Mesterbud'} <noreply@mesterbud.dk>`,
+      from: fromDisplay,
+      replyTo: afsenderEmail || undefined,
       to: data.kundeEmail,
-      subject: `Opfølgning på tilbud – ${firma || 'din håndværker'}`,
+      subject: `Tilbud fra ${firma || 'din håndværker'} – opfølgning`,
       text: `Hej ${kundenavn},\n\n${data.mailTekst}\n\nDu kan se tilbuddet her:\n${previewUrl}\n\nMed venlig hilsen\n${firma || ''}`,
       html: `<p>Hej ${kundenavn},</p>
 <p>${data.mailTekst.replace(/\n/g, '<br>')}</p>
