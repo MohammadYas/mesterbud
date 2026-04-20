@@ -1,0 +1,31 @@
+# Mesterbud
+
+## Hvad er Mesterbud?
+Mesterbud er et dansk SaaS-produkt til håndværkere. Det hjælper tømrere, malere, VVS'er, elektrikere og andre håndværksfag med at oprette professionelle tilbud, sende dem til kunder og følge op – alt fra ét sted.
+
+## Kernefunktioner
+- Opret tilbud med AI-hjælp (stemmeoptagelse eller billedanalyse)
+- Send tilbud direkte til kunder via link
+- Kunder kan acceptere eller afvise tilbud digitalt (med signatur)
+- AI-genereret opfølgningsmail til tilbud der afventer svar
+- Vindanalyse: AI-gennemgang af tilbudsmønstre med konkrete råd
+- 8 brancheskabeloner (Maler, VVS, Elektriker, Tømrer, Murer, Tagdækker, Gulvlægger, Anlægsgartner)
+- PDF-download af tilbud
+- Abonnement via Stripe (Basis 149 kr/md, Pro 299 kr/md, 14 dages gratis prøveperiode)
+
+## Teknisk stack
+- Frontend: Statiske HTML-sider med Alpine.js + Tailwind CSS (CDN)
+- Backend: Netlify Functions (Node.js serverless)
+- Database: Netlify Blobs (nøgle/værdi-lager)
+- Auth: Netlify Identity (GoTrue JWT)
+- Betaling: Stripe Checkout + Customer Portal
+- AI: OpenAI gpt-4o (vision), gpt-4o-mini (tekst)
+- Email: nodemailer / SMTP
+
+## Deployment
+- Hostet på Netlify
+- Ingen build-trin – deploy direkte fra GitHub-repo
+
+## Kontakt og support
+- Hjemmeside: https://mesterbud.dk
+- Support: support@mesterbud.dk

@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard – Mesterbud</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "on-primary-container": "#fffbff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "surface-variant": "#e6e2dc", "on-surface": "#1c1c18",
+      "on-surface-variant": "#594138", "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+      "tertiary": "#0059b9",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+  [x-cloak] { display: none !important; }
+  .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all; }
+  .sidebar-link.active { @apply bg-primary text-on-primary; }
+  .sidebar-link:not(.active) { @apply text-on-surface-variant hover:bg-surface-container; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-surface">
+
+<script>
+// Auth check
+(function() {
+  const s = localStorage.getItem('gotrue-session');
+  if (!s) { window.location.href = '/login.html'; return; }
+  try {
+    const t = JSON.parse(s);
+    const p = JSON.parse(atob(t.access_token.split('.')[1]));
+    if (p.exp < Date.now() / 1000) {
+      // Try refresh
+      fetch('/.netlify/identity/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(t.refresh_token)
+      }).then(r => r.json()).then(d => {
+        if (d.access_token) localStorage.setItem('gotrue-session', JSON.stringify(d));
+        else { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+      }).catch(() => { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; });
+    }
+  } catch(e) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+})();
+</script>
+
+<div x-data="app()" x-init="init()" class="flex h-screen overflow-hidden bg-surface">
+
+  <!-- Mobile overlay -->
+  <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+    class="fixed inset-0 bg-black/40 z-30 md:hidden" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"></div>
+
+  <!-- Sidebar -->
+  <aside class="fixed top-0 left-0 h-full w-60 bg-surface-container-low border-r border-outline-variant z-40 flex flex-col transition-transform duration-300"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2 px-6 h-16 border-b border-outline-variant flex-shrink-0">
+      <span class="material-symbols-outlined text-primary text-2xl">handyman</span>
+      <span class="text-xl font-bold" style="font-family: Newsreader, serif">Mesterbud</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <button @click="setView('oversigt'); sidebarOpen = false"
+        :class="currentView === 'oversigt' ? 'active' : ''"
+        class="sidebar-link w-full text-left">
+        <span class="material-symbols-outlined text-xl">dashboard</span>
+        Oversigt
+      </button>
+      <button @click="setView('tilbud'); sidebarOpen = false"
+        :class="currentView === 'tilbud' ? 'active' : ''"
+        class="sidebar-link w-full text-left">
+        <span class="material-symbols-outlined text-xl">description</span>
+        Tilbud
+      </button>
+      <a href="/konto.html" class="sidebar-link">
+        <span class="material-symbols-outlined text-xl">manage_accounts</span>
+        Konto
+      </a>
+    </nav>
+
+    <!-- User info -->
+    <div class="p-4 border-t border-outline-variant flex-shrink-0">
+      <!-- Trial/subscription warning -->
+      <div x-show="!userPlan || userPlan === 'none'" x-cloak class="mb-3 bg-error-container text-on-error-container rounded-lg p-3 text-xs">
+        <p class="font-bold mb-1">Prøveperiode udløbet</p>
+        <a href="/konto.html" class="underline font-medium">Vælg abonnement →</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <span class="text-primary font-bold text-sm" x-text="userName ? userName.charAt(0).toUpperCase() : 'M'"></span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium truncate" x-text="userName || 'Bruger'"></p>
+          <p class="text-xs text-on-surface-variant truncate" x-text="userEmail"></p>
+        </div>
+        <button @click="logout()" title="Log ud" class="text-on-surface-variant hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-xl">logout</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 md:ml-60 flex flex-col min-h-0 overflow-auto">
+
+    <!-- Top bar -->
+    <header class="h-16 bg-surface-container-lowest border-b border-outline-variant flex items-center px-6 gap-4 flex-shrink-0 sticky top-0 z-20">
+      <button @click="sidebarOpen = !sidebarOpen" class="md:hidden text-on-surface-variant hover:text-on-surface">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <h1 class="text-lg font-bold flex-1" x-text="currentView === 'oversigt' ? 'Oversigt' : 'Mine tilbud'"></h1>
+      <a href="/tilbud-ny.html"
+        class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+        <span class="material-symbols-outlined text-base">add</span>
+        Nyt tilbud
+      </a>
+    </header>
+
+    <!-- Subscription expired banner -->
+    <div x-show="!userPlan || userPlan === 'none'" x-cloak
+      class="bg-error-container text-on-error-container px-6 py-3 text-sm flex items-center gap-3">
+      <span class="material-symbols-outlined text-base">warning</span>
+      <span>Din prøveperiode er udløbet – vælg et abonnement for at fortsætte.</span>
+      <a href="/konto.html" class="font-bold underline ml-auto">Vælg plan →</a>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="loading" x-cloak class="flex-1 flex items-center justify-center">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant animate-spin">progress_activity</span>
+    </div>
+
+    <!-- OVERSIGT VIEW -->
+    <div x-show="!loading && currentView === 'oversigt'" x-cloak class="p-6 md:p-8 space-y-8">
+
+      <!-- Metric cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Tilbud denne måned</p>
+          <p class="text-3xl font-bold" style="font-family: Newsreader, serif" x-text="metrics.denneMaaned"></p>
+        </div>
+        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Accepterede tilbud</p>
+          <p class="text-3xl font-bold text-green-700" style="font-family: Newsreader, serif" x-text="metrics.accepterede"></p>
+        </div>
+        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Afventer svar</p>
+          <p class="text-3xl font-bold text-tertiary" style="font-family: Newsreader, serif" x-text="metrics.afventende"></p>
+        </div>
+      </div>
+
+      <!-- Recent tilbud -->
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">Seneste tilbud</h2>
+          <button @click="setView('tilbud')" class="text-sm text-primary font-medium hover:underline">Se alle →</button>
+        </div>
+
+        <div x-show="tilbud.length === 0" class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-12 text-center">
+          <span class="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4 block">description</span>
+          <h3 class="font-bold text-on-surface-variant mb-2">Ingen tilbud endnu</h3>
+          <p class="text-sm text-on-surface-variant mb-6">Opret dit første tilbud og send det til en kunde på få minutter.</p>
+          <a href="/tilbud-ny.html" class="inline-flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-base">add</span>
+            Opret tilbud
+          </a>
+        </div>
+
+        <div x-show="tilbud.length > 0" class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-outline-variant/30">
+                <th class="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Kunde</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant hidden sm:table-cell">Beløb</th>
+                <th class="text-center px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Status</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Dato</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="t in tilbud.slice(0,5)" :key="t.id">
+                <tr class="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container-low transition-colors cursor-pointer"
+                  @click="window.location.href = '/tilbud-rediger.html?id=' + t.id">
+                  <td class="px-5 py-4">
+                    <p class="font-medium" x-text="t.modtager?.navn || '—'"></p>
+                    <p class="text-xs text-on-surface-variant" x-text="t.id"></p>
+                  </td>
+                  <td class="px-5 py-4 text-right font-bold hidden sm:table-cell" x-text="formatKr(t.total || 0)"></td>
+                  <td class="px-5 py-4 text-center">
+                    <span :class="statusClass(t.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" x-text="statusLabel(t.status)"></span>
+                  </td>
+                  <td class="px-5 py-4 text-right text-on-surface-variant hidden md:table-cell" x-text="formatDato(t.opdateret)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AI VINDANALYSE WIDGET -->
+      <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary text-xl">insights</span>
+            <h2 class="font-bold">Din tilbudsanalyse</h2>
+          </div>
+          <template x-if="userPlan !== 'pro'">
+            <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+              <span class="material-symbols-outlined text-sm">lock</span>
+              <a href="/konto.html" class="text-primary font-bold hover:underline">Kræver Pro</a>
+            </div>
+          </template>
+          <button x-show="userPlan === 'pro'" x-cloak @click="hentVindanalyse()" :disabled="analyseLoading"
+            class="flex items-center gap-1.5 text-xs font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors active:scale-95 disabled:opacity-60">
+            <span x-show="analyseLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            <span x-show="!analyseLoading" class="material-symbols-outlined text-sm">refresh</span>
+            Analyser mine tilbud
+          </button>
+        </div>
+        <div class="p-6">
+          <!-- Pro gate -->
+          <div x-show="userPlan !== 'pro'" class="text-center py-4">
+            <span class="material-symbols-outlined text-4xl text-on-surface-variant/30 mb-2 block">lock</span>
+            <p class="text-sm text-on-surface-variant">Opgrader til Pro for at se AI-analyse af dine tilbudsmønstre.</p>
+            <a href="/konto.html" class="inline-block mt-3 text-xs font-bold text-primary hover:underline">Opgrader til Pro →</a>
+          </div>
+          <!-- Loading -->
+          <div x-show="userPlan === 'pro' && analyseLoading" x-cloak class="flex items-center gap-3 py-4">
+            <span class="material-symbols-outlined text-primary animate-spin">progress_activity</span>
+            <span class="text-sm text-on-surface-variant">AI analyserer dine tilbud...</span>
+          </div>
+          <!-- Ingen analyse endnu -->
+          <div x-show="userPlan === 'pro' && !analyseLoading && !analyseRaad && !analyseFejl" x-cloak class="text-center py-4 text-sm text-on-surface-variant">
+            Klik "Analyser mine tilbud" for at få personlige råd baseret på dine data.
+          </div>
+          <!-- Fejl -->
+          <div x-show="analyseFejl" x-cloak class="text-sm text-error" x-text="analyseFejl"></div>
+          <!-- For få tilbud -->
+          <div x-show="analyseMessage" x-cloak class="flex items-center gap-3 text-sm text-on-surface-variant">
+            <span class="material-symbols-outlined text-xl">hourglass_empty</span>
+            <span x-text="analyseMessage"></span>
+          </div>
+          <!-- Råd -->
+          <div x-show="analyseRaad && analyseRaad.length" x-cloak class="space-y-3">
+            <template x-for="(raad, i) in analyseRaad" :key="i">
+              <div class="flex items-start gap-3 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <span class="material-symbols-outlined text-primary text-xl flex-shrink-0 mt-0.5">lightbulb</span>
+                <p class="text-sm font-bold" x-text="raad"></p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Big CTA -->
+      <a href="/tilbud-ny.html"
+        class="flex items-center justify-center gap-3 w-full py-5 bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-xl font-bold text-lg active:scale-95 transition-all shadow-xl shadow-primary/20">
+        <span class="material-symbols-outlined text-2xl">add_circle</span>
+        Opret nyt tilbud
+      </a>
+    </div>
+
+    <!-- TILBUD LIST VIEW -->
+    <div x-show="!loading && currentView === 'tilbud'" x-cloak class="p-6 md:p-8 space-y-6">
+
+      <!-- Filters + Search -->
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex gap-2 flex-wrap">
+          <template x-for="f in ['alle','kladde','sendt','accepteret','afvist']" :key="f">
+            <button @click="activeFilter = f"
+              :class="activeFilter === f ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'"
+              class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all active:scale-95"
+              x-text="f.charAt(0).toUpperCase() + f.slice(1)">
+            </button>
+          </template>
+        </div>
+        <div class="relative sm:ml-auto">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+          <input x-model="search" type="text" placeholder="Søg på kundenavn..."
+            class="pl-9 pr-4 py-2 rounded-lg bg-surface-container-low border border-outline-variant text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors w-full sm:w-56"/>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[640px]">
+            <thead>
+              <tr class="border-b border-outline-variant/30">
+                <th class="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Tilbudsnr.</th>
+                <th class="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Kunde</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beløb</th>
+                <th class="text-center px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Status</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Dato</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Handlinger</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="t in filteredTilbud" :key="t.id">
+                <tr class="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container-low transition-colors">
+                  <td class="px-5 py-4 font-mono text-xs font-medium text-on-surface-variant" x-text="t.id"></td>
+                  <td class="px-5 py-4 font-medium" x-text="t.modtager?.navn || '—'"></td>
+                  <td class="px-5 py-4 text-right font-bold" x-text="formatKr(t.total || 0)"></td>
+                  <td class="px-5 py-4 text-center">
+                    <span :class="statusClass(t.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" x-text="statusLabel(t.status)"></span>
+                  </td>
+                  <td class="px-5 py-4 text-right text-on-surface-variant" x-text="formatDato(t.opdateret)"></td>
+                  <td class="px-5 py-4">
+                    <div class="flex items-center justify-end gap-1">
+                      <a :href="'/tilbud-rediger.html?id=' + t.id" title="Rediger"
+                        class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-base">edit</span>
+                      </a>
+                      <a :href="'/tilbud-preview.html?id=' + t.id" target="_blank" title="Preview"
+                        class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-base">visibility</span>
+                      </a>
+                      <button @click="downloadPDF(t)" title="Download PDF"
+                        class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-base">download</span>
+                      </button>
+                      <!-- Opfølgning: kun for 'sendt' >3 dage og ikke allerede sendt -->
+                      <button x-show="t.status === 'sendt' && dagsForsidenSendt(t) >= 3 && !t.opfoelgningsendt"
+                        @click.stop="aabOpfoelgning(t)" title="Send AI-opfølgning"
+                        class="p-1.5 rounded-lg hover:bg-primary/10 transition-colors text-primary">
+                        <span class="material-symbols-outlined text-base">mark_email_read</span>
+                      </button>
+                      <button @click="confirmSlet(t)" title="Slet"
+                        class="p-1.5 rounded-lg hover:bg-error-container transition-colors text-on-surface-variant hover:text-error">
+                        <span class="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredTilbud.length === 0">
+                <td colspan="6" class="px-5 py-12 text-center text-on-surface-variant">
+                  <span class="material-symbols-outlined text-3xl block mb-2">search_off</span>
+                  Ingen tilbud matcher din søgning.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Opfølgning modal -->
+  <div x-show="opfoelgningModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div class="bg-surface-container-lowest rounded-xl shadow-2xl p-8 max-w-lg w-full border border-outline-variant/20 flex flex-col gap-5" @click.stop>
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">mark_email_read</span>
+        <h3 class="text-xl font-bold">Send opfølgning</h3>
+        <button @click="opfoelgningModal = false" class="ml-auto text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <p class="text-sm text-on-surface-variant -mt-2">
+        Til: <strong x-text="opfoelgningTilbud?.modtager?.navn || '—'"></strong>
+        (<span x-text="opfoelgningTilbud?.modtager?.email || 'ingen email'"></span>)
+      </p>
+      <!-- Loading -->
+      <div x-show="opfoelgningLoading" class="flex items-center gap-3 text-sm text-on-surface-variant py-4">
+        <span class="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+        AI genererer opfølgningstekst...
+      </div>
+      <!-- Fejl -->
+      <div x-show="opfoelgningFejl && !opfoelgningLoading" x-cloak class="text-sm text-error" x-text="opfoelgningFejl"></div>
+      <!-- Tekst editor -->
+      <div x-show="!opfoelgningLoading" x-cloak>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Beskedtekst</label>
+        <textarea x-model="opfoelgningTekst" rows="7"
+          class="w-full rounded-lg border border-outline-variant bg-surface-container-low p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+          placeholder="AI genererer tekst..."></textarea>
+      </div>
+      <div class="flex gap-3" x-show="!opfoelgningLoading" x-cloak>
+        <button @click="opfoelgningModal = false" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all">Annuller</button>
+        <button @click="sendOpfoelgning()" :disabled="opfoelgningSender || !opfoelgningTekst || !opfoelgningTilbud?.modtager?.email"
+          class="flex-1 py-3 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+          <span x-show="opfoelgningSender" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+          <span class="material-symbols-outlined text-sm" x-show="!opfoelgningSender">send</span>
+          Send mail
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slet bekræftelsesmodal -->
+  <div x-show="sletModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div class="bg-surface-container-lowest rounded-xl shadow-2xl p-8 max-w-sm w-full border border-outline-variant/20"
+      @click.stop>
+      <div class="w-12 h-12 rounded-full bg-error-container flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-error">delete_forever</span>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Slet tilbud</h3>
+      <p class="text-on-surface-variant text-sm mb-6">Er du sikker på, at du vil slette <strong x-text="sletTarget?.id"></strong>? Denne handling kan ikke fortrydes.</p>
+      <div class="flex gap-3">
+        <button @click="sletModal = false; sletTarget = null" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all">Annuller</button>
+        <button @click="sletTilbud()" :disabled="sletLoading"
+          class="flex-1 py-3 rounded-lg bg-error text-white font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70">
+          <span x-show="sletLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+          Slet tilbud
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function app() {
+  return {
+    currentView: 'oversigt',
+    sidebarOpen: false,
+    loading: true,
+    tilbud: [],
+    activeFilter: 'alle',
+    search: '',
+    userEmail: '',
+    userName: '',
+    userPlan: 'trial',
+    sletModal: false,
+    sletTarget: null,
+    sletLoading: false,
+
+    // AI Vindanalyse
+    analyseLoading: false,
+    analyseRaad: null,
+    analyseFejl: '',
+    analyseMessage: '',
+
+    // Opfølgning modal
+    opfoelgningModal: false,
+    opfoelgningTilbud: null,
+    opfoelgningTekst: '',
+    opfoelgningLoading: false,
+    opfoelgningSender: false,
+    opfoelgningFejl: '',
+
+    async init() {
+      // Get user info from JWT
+      const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+      if (s.access_token) {
+        try {
+          const payload = JSON.parse(atob(s.access_token.split('.')[1]));
+          this.userEmail = payload.email || '';
+          this.userName = payload.user_metadata?.full_name || '';
+        } catch(e) {}
+      }
+      await this.loadTilbud();
+      await this.loadUser();
+      this.loading = false;
+    },
+
+    async loadTilbud() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-tilbud', {
+          headers: { 'Authorization': 'Bearer ' + s.access_token }
+        });
+        if (res.ok) this.tilbud = await res.json();
+      } catch(e) { console.error('Kunne ikke hente tilbud:', e); }
+    },
+
+    async loadUser() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-user', {
+          headers: { 'Authorization': 'Bearer ' + s.access_token }
+        });
+        if (res.ok) {
+          const u = await res.json();
+          this.userPlan = u.plan || 'trial';
+        }
+      } catch(e) {}
+    },
+
+    setView(v) { this.currentView = v; },
+
+    get metrics() {
+      const now = new Date();
+      const thisMo = this.tilbud.filter(t => {
+        const d = new Date(t.oprettet || t.opdateret);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      });
+      return {
+        denneMaaned: thisMo.length,
+        accepterede: this.tilbud.filter(t => t.status === 'accepteret').length,
+        afventende: this.tilbud.filter(t => t.status === 'sendt').length,
+      };
+    },
+
+    get filteredTilbud() {
+      return this.tilbud.filter(t => {
+        const matchFilter = this.activeFilter === 'alle' || t.status === this.activeFilter;
+        const matchSearch = !this.search || (t.modtager?.navn || '').toLowerCase().includes(this.search.toLowerCase());
+        return matchFilter && matchSearch;
+      });
+    },
+
+    statusClass(s) {
+      return {
+        'kladde': 'bg-surface-container-high text-on-surface-variant',
+        'sendt': 'bg-blue-100 text-blue-800',
+        'accepteret': 'bg-green-100 text-green-800',
+        'afvist': 'bg-red-100 text-red-700',
+      }[s] || 'bg-surface-container-high text-on-surface-variant';
+    },
+
+    statusLabel(s) {
+      return { 'kladde': 'Kladde', 'sendt': 'Sendt', 'accepteret': 'Accepteret', 'afvist': 'Afvist' }[s] || 'Kladde';
+    },
+
+    formatKr(amount) {
+      return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(amount);
+    },
+
+    formatDato(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
+
+    confirmSlet(t) { this.sletTarget = t; this.sletModal = true; },
+
+    async sletTilbud() {
+      if (!this.sletTarget) return;
+      this.sletLoading = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-tilbud', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: this.sletTarget.id })
+        });
+        if (res.ok) {
+          this.tilbud = this.tilbud.filter(t => t.id !== this.sletTarget.id);
+        }
+      } catch(e) {}
+      this.sletLoading = false;
+      this.sletModal = false;
+      this.sletTarget = null;
+    },
+
+    downloadPDF(t) {
+      // Redirect to preview med ?pdf=1
+      window.open('/tilbud-preview.html?id=' + t.id + '&pdf=1', '_blank');
+    },
+
+    // AI VINDANALYSE
+    async hentVindanalyse() {
+      if (this.analyseLoading) return;
+      this.analyseLoading = true;
+      this.analyseRaad = null;
+      this.analyseFejl = '';
+      this.analyseMessage = '';
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/ai-vindanalyse', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (data.minimumTilbud) {
+            this.analyseMessage = data.error || 'Du skal have mindst 5 tilbud for at få analysen.';
+          } else {
+            this.analyseFejl = data.error || 'Fejl ved analyse.';
+          }
+        } else {
+          this.analyseRaad = data.raad || [];
+        }
+      } catch(e) {
+        this.analyseFejl = 'Netværksfejl – prøv igen.';
+      }
+      this.analyseLoading = false;
+    },
+
+    // OPFØLGNING
+    dagsForsidenSendt(t) {
+      if (!t.opdateret) return 0;
+      return Math.floor((Date.now() - new Date(t.opdateret).getTime()) / 86400000);
+    },
+
+    async aabOpfoelgning(t) {
+      this.opfoelgningTilbud = t;
+      this.opfoelgningTekst = '';
+      this.opfoelgningFejl = '';
+      this.opfoelgningLoading = true;
+      this.opfoelgningModal = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/ai-opfoelgning', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tilbudsId: t.id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          this.opfoelgningTekst = data.tekst || '';
+        } else {
+          this.opfoelgningFejl = data.error || 'Kunne ikke generere opfølgning.';
+        }
+      } catch(e) {
+        this.opfoelgningFejl = 'Netværksfejl.';
+      }
+      this.opfoelgningLoading = false;
+    },
+
+    async sendOpfoelgning() {
+      if (!this.opfoelgningTilbud || !this.opfoelgningTekst) return;
+      this.opfoelgningSender = true;
+      this.opfoelgningFejl = '';
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const u = await fetch('/api/get-user', { headers: { 'Authorization': 'Bearer ' + s.access_token } })
+          .then(r => r.ok ? r.json() : {});
+        const res = await fetch('/api/send-opfoelgning', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tilbudsId: this.opfoelgningTilbud.id,
+            mailTekst: this.opfoelgningTekst,
+            kundeEmail: this.opfoelgningTilbud.modtager?.email || '',
+            kundenavn: this.opfoelgningTilbud.modtager?.navn || '',
+            afsenderFirma: u.virksomhed?.navn || ''
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // Markér tilbud lokalt med opfølgningsdato
+          const idx = this.tilbud.findIndex(t => t.id === this.opfoelgningTilbud.id);
+          if (idx >= 0) this.tilbud[idx].opfoelgningsendt = new Date().toISOString();
+          this.opfoelgningModal = false;
+        } else {
+          this.opfoelgningFejl = data.error || 'Fejl ved afsendelse.';
+        }
+      } catch(e) {
+        this.opfoelgningFejl = 'Netværksfejl.';
+      }
+      this.opfoelgningSender = false;
+    },
+
+    logout() {
+      const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+      if (s.access_token) {
+        fetch('/.netlify/identity/logout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token }
+        }).catch(() => {});
+      }
+      localStorage.removeItem('gotrue-session');
+      window.location.href = '/login.html';
+    }
+  };
+}
+</script>
+</body>
+</html>

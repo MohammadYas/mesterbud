@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Konto – Mesterbud</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "on-surface": "#1c1c18", "on-surface-variant": "#594138",
+      "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+  [x-cloak] { display: none !important; }
+  .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
+  .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-surface-container-low">
+
+<script>
+(function() {
+  const s = localStorage.getItem('gotrue-session');
+  if (!s) { window.location.href = '/login.html'; return; }
+  try {
+    const t = JSON.parse(s);
+    const p = JSON.parse(atob(t.access_token.split('.')[1]));
+    if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+  } catch(e) { window.location.href = '/login.html'; }
+})();
+</script>
+
+<div x-data="kontoApp()" x-init="init()" class="min-h-screen">
+
+  <!-- Top bar -->
+  <header class="h-14 bg-surface-container-lowest border-b border-outline-variant flex items-center px-6 gap-4 sticky top-0 z-20 shadow-sm">
+    <a href="/dashboard.html" class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors">
+      <span class="material-symbols-outlined text-xl">arrow_back</span>
+      <span class="text-sm font-medium">Dashboard</span>
+    </a>
+    <div class="flex items-center gap-2 ml-2">
+      <span class="material-symbols-outlined text-primary text-xl">handyman</span>
+      <span class="font-bold" style="font-family: Newsreader, serif">Mesterbud</span>
+      <span class="text-on-surface-variant">/</span>
+      <span class="text-sm text-on-surface-variant">Konto</span>
+    </div>
+  </header>
+
+  <div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- Expired banner -->
+    <div x-show="plan === 'none'" x-cloak class="bg-error-container text-on-error-container rounded-xl p-5 flex items-start gap-4">
+      <span class="material-symbols-outlined text-2xl mt-0.5">warning</span>
+      <div>
+        <p class="font-bold mb-1">Din prøveperiode er udløbet</p>
+        <p class="text-sm">Vælg et abonnement nedenfor for at fortsætte med at bruge Mesterbud.</p>
+      </div>
+    </div>
+
+    <!-- SEKTION 1: Virksomhedsinfo -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">business</span>
+        <h2 class="font-bold text-base">Virksomhedsoplysninger</h2>
+      </div>
+      <div class="p-6 space-y-5">
+
+        <!-- Logo upload -->
+        <div>
+          <label class="field-label">Firmalogo</label>
+          <div class="flex items-start gap-4">
+            <div class="w-20 h-16 rounded-lg border-2 border-dashed border-outline-variant flex items-center justify-center overflow-hidden flex-shrink-0 bg-surface-container-low">
+              <img x-show="virksomhed.logo" :src="virksomhed.logo" class="w-full h-full object-contain" alt="Logo"/>
+              <span x-show="!virksomhed.logo" class="material-symbols-outlined text-on-surface-variant/40 text-3xl">image</span>
+            </div>
+            <div>
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container text-sm font-medium hover:bg-surface-container-high transition-colors active:scale-95">
+                <span class="material-symbols-outlined text-base">upload</span>
+                Upload logo
+                <input type="file" accept="image/*" class="hidden" @change="uploadLogo($event)"/>
+              </label>
+              <p class="text-xs text-on-surface-variant mt-2">PNG eller SVG anbefales. Max 2MB.</p>
+              <button x-show="virksomhed.logo" @click="virksomhed.logo = ''" class="text-xs text-error hover:underline mt-1 flex items-center gap-1">
+                <span class="material-symbols-outlined text-xs">delete</span>
+                Fjern logo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">Firmanavn</label>
+            <input x-model="virksomhed.firmanavn" type="text" placeholder="Mesterbyg ApS" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Adresse</label>
+            <input x-model="virksomhed.adresse" type="text" placeholder="Bygmestervej 12, 2400 København NV" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">CVR-nummer</label>
+            <input x-model="virksomhed.cvr" type="text" placeholder="12345678" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="virksomhed.telefon" type="tel" placeholder="12 34 56 78" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">E-mail</label>
+            <input x-model="virksomhed.email" type="email" placeholder="kontakt@mesterbyg.dk" class="field-input"/>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <p x-show="gemtVirksomhed" x-cloak x-transition class="text-sm text-green-700 flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            Oplysninger gemt
+          </p>
+          <div class="ml-auto">
+            <button @click="gemVirksomhed()" :disabled="gemmerVirksomhed"
+              class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+              <span x-show="gemmerVirksomhed" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              Gem oplysninger
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEKTION 2: Abonnement -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">credit_card</span>
+        <h2 class="font-bold text-base">Abonnement</h2>
+      </div>
+      <div class="p-6">
+
+        <!-- Current plan -->
+        <div class="flex items-center justify-between mb-6 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Aktiv plan</p>
+            <p class="font-bold text-lg" x-text="planLabel(plan)"></p>
+            <p x-show="naesteBetaling" class="text-sm text-on-surface-variant mt-1" x-text="'Næste betaling: ' + naesteBetaling"></p>
+            <p x-show="plan === 'trial'" class="text-sm text-on-surface-variant mt-1">14 dages gratis prøveperiode</p>
+          </div>
+          <span :class="plan === 'none' ? 'bg-error-container text-on-error-container' : 'bg-green-100 text-green-800'"
+            class="px-3 py-1 rounded-full text-xs font-bold"
+            x-text="plan === 'none' ? 'Udløbet' : plan === 'trial' ? 'Prøveperiode' : 'Aktiv'">
+          </span>
+        </div>
+
+        <!-- Plan comparison -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <!-- Basis -->
+          <div class="p-5 rounded-xl border-2 transition-colors"
+            :class="plan === 'basis' ? 'border-primary bg-primary/5' : 'border-outline-variant'">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-lg">Basis</h3>
+                <p class="text-on-surface-variant text-xs">Til den nystartede mester</p>
+              </div>
+              <span x-show="plan === 'basis'" class="bg-primary text-on-primary text-xs font-bold px-2 py-0.5 rounded-full">Aktiv</span>
+            </div>
+            <div class="flex items-baseline gap-1 mb-4">
+              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">199</span>
+              <span class="text-on-surface-variant text-sm">kr/md</span>
+            </div>
+            <ul class="space-y-2 text-sm mb-4">
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Op til 10 tilbud/md</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Digital signatur</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> PDF download</li>
+            </ul>
+            <button x-show="plan !== 'basis'"
+              @click="skiftPlan('basis')" :disabled="checkoutLoading"
+              class="w-full py-2.5 rounded-lg border-2 border-primary text-primary font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+              Vælg Basis
+            </button>
+          </div>
+          <!-- Pro -->
+          <div class="p-5 rounded-xl border-2 relative transition-colors"
+            :class="plan === 'pro' ? 'border-primary bg-primary/5' : 'border-primary shadow-lg shadow-primary/10'">
+            <div x-show="plan !== 'pro'" class="absolute -top-3 right-4 bg-primary text-on-primary text-xs font-bold px-3 py-0.5 rounded-full">Mest populær</div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="font-bold text-lg">Pro</h3>
+                <p class="text-on-surface-variant text-xs">Til den travle mester</p>
+              </div>
+              <span x-show="plan === 'pro'" class="bg-primary text-on-primary text-xs font-bold px-2 py-0.5 rounded-full">Aktiv</span>
+            </div>
+            <div class="flex items-baseline gap-1 mb-4">
+              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">349</span>
+              <span class="text-on-surface-variant text-sm">kr/md</span>
+            </div>
+            <ul class="space-y-2 text-sm mb-4">
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Ubegrænsede tilbud</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Prioriteret support</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Automatisk opfølgning</li>
+              <li class="flex items-center gap-2 font-bold text-primary"><span class="material-symbols-outlined text-primary text-base">done</span> Tilpassede skabeloner</li>
+            </ul>
+            <button x-show="plan !== 'pro'"
+              @click="skiftPlan('pro')" :disabled="checkoutLoading"
+              class="w-full py-2.5 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+              <span x-show="checkoutLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              Vælg Pro
+            </button>
+          </div>
+        </div>
+
+        <!-- Manage existing -->
+        <div x-show="plan === 'basis' || plan === 'pro'" class="flex flex-col sm:flex-row gap-3">
+          <button @click="aabKundePortal()"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border border-outline-variant bg-surface-container text-sm font-medium hover:bg-surface-container-high transition-colors active:scale-95">
+            <span class="material-symbols-outlined text-base">open_in_new</span>
+            Administrér abonnement
+          </button>
+          <button @click="aabKundePortal()"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border border-error text-error text-sm font-medium hover:bg-error-container transition-colors active:scale-95">
+            <span class="material-symbols-outlined text-base">cancel</span>
+            Annuller abonnement
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEKTION 3: Adgangskode -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">lock</span>
+        <h2 class="font-bold text-base">Skift adgangskode</h2>
+      </div>
+      <div class="p-6 space-y-4">
+        <div x-show="pwError" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm" x-text="pwError"></div>
+        <div x-show="pwSuccess" x-cloak class="bg-green-50 text-green-800 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+          <span class="material-symbols-outlined text-base">check_circle</span>
+          Adgangskode opdateret
+        </div>
+        <div>
+          <label class="field-label">Ny adgangskode</label>
+          <input x-model="nyPw" type="password" placeholder="Mindst 8 tegn" class="field-input"/>
+        </div>
+        <div>
+          <label class="field-label">Gentag ny adgangskode</label>
+          <input x-model="nyPw2" type="password" placeholder="••••••••" class="field-input"/>
+        </div>
+        <div class="flex justify-end">
+          <button @click="skiftAdgangskode()" :disabled="!nyPw || !nyPw2 || pwLoading"
+            class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+            <span x-show="pwLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            Opdater adgangskode
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Danger zone -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center gap-3">
+        <span class="material-symbols-outlined text-error">warning</span>
+        <h2 class="font-bold text-base text-error">Farezone</h2>
+      </div>
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-medium text-sm">Slet konto</p>
+            <p class="text-xs text-on-surface-variant">Alle data slettes permanent og kan ikke gendannes.</p>
+          </div>
+          <button class="px-4 py-2 rounded-lg border-2 border-error text-error text-sm font-bold hover:bg-error-container transition-colors active:scale-95">
+            Slet konto
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="pb-8"></div>
+  </div>
+
+  <!-- Toast -->
+  <div x-show="toast.show" x-cloak x-transition
+    class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2"
+    style="background:#31302d;color:#f4f0ea">
+    <span class="material-symbols-outlined text-base" x-text="toast.icon"></span>
+    <span x-text="toast.msg"></span>
+  </div>
+</div>
+
+<script>
+function kontoApp() {
+  return {
+    plan: 'trial',
+    naesteBetaling: '',
+    virksomhed: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', logo: '' },
+    gemmerVirksomhed: false,
+    gemtVirksomhed: false,
+    checkoutLoading: false,
+    nyPw: '',
+    nyPw2: '',
+    pwLoading: false,
+    pwError: '',
+    pwSuccess: false,
+    toast: { show: false, msg: '', icon: 'check_circle' },
+
+    async init() {
+      await this.hentBruger();
+    },
+
+    async hentBruger() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-user', { headers: { 'Authorization': 'Bearer ' + s.access_token } });
+        if (res.ok) {
+          const u = await res.json();
+          this.plan = u.plan || 'trial';
+          this.naesteBetaling = u.naesteBetaling || '';
+          if (u.virksomhed) this.virksomhed = { ...this.virksomhed, ...u.virksomhed };
+        }
+      } catch(e) {}
+    },
+
+    async gemVirksomhed() {
+      this.gemmerVirksomhed = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-user', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ virksomhed: this.virksomhed })
+        });
+        if (res.ok) {
+          this.gemtVirksomhed = true;
+          setTimeout(() => { this.gemtVirksomhed = false; }, 3000);
+        }
+      } catch(e) { this.visToast('Fejl ved gemning', 'error'); }
+      this.gemmerVirksomhed = false;
+    },
+
+    uploadLogo(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { this.visToast('Filen er for stor (max 2MB)', 'warning'); return; }
+      const reader = new FileReader();
+      reader.onload = (e) => { this.virksomhed.logo = e.target.result; };
+      reader.readAsDataURL(file);
+    },
+
+    async skiftPlan(plan) {
+      this.checkoutLoading = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const payload = JSON.parse(atob(s.access_token.split('.')[1]));
+        const res = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan, userEmail: payload.email, userId: payload.sub })
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+        else this.visToast('Fejl ved oprettelse af betaling', 'error');
+      } catch(e) { this.visToast('Netværksfejl', 'error'); }
+      this.checkoutLoading = false;
+    },
+
+    async aabKundePortal() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/customer-portal', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token }
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+      } catch(e) { this.visToast('Netværksfejl', 'error'); }
+    },
+
+    async skiftAdgangskode() {
+      this.pwError = '';
+      this.pwSuccess = false;
+      if (this.nyPw !== this.nyPw2) { this.pwError = 'Adgangskoderne stemmer ikke overens.'; return; }
+      if (this.nyPw.length < 8) { this.pwError = 'Adgangskoden skal være mindst 8 tegn.'; return; }
+      this.pwLoading = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/.netlify/identity/user', {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: this.nyPw })
+        });
+        if (res.ok) { this.pwSuccess = true; this.nyPw = ''; this.nyPw2 = ''; }
+        else { this.pwError = 'Fejl ved skift af adgangskode – prøv igen.'; }
+      } catch(e) { this.pwError = 'Netværksfejl.'; }
+      this.pwLoading = false;
+    },
+
+    planLabel(p) { return { 'trial': 'Gratis prøveperiode', 'basis': 'Basis – 199 kr/md', 'pro': 'Pro – 349 kr/md', 'none': 'Intet abonnement' }[p] || 'Ukendt'; },
+
+    visToast(msg, icon = 'check_circle') {
+      this.toast = { show: true, msg, icon };
+      setTimeout(() => { this.toast.show = false; }, 3000);
+    }
+  };
+}
+</script>
+</body>
+</html>

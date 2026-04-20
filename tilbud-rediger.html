@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rediger tilbud – Mesterbud</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "on-surface": "#1c1c18", "on-surface-variant": "#594138",
+      "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+  [x-cloak] { display: none !important; }
+  .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
+  .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
+  .field-textarea { @apply w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-surface-container-low">
+
+<script>
+(function() {
+  const s = localStorage.getItem('gotrue-session');
+  if (!s) { window.location.href = '/login.html'; return; }
+  try {
+    const t = JSON.parse(s);
+    const p = JSON.parse(atob(t.access_token.split('.')[1]));
+    if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+  } catch(e) { window.location.href = '/login.html'; }
+})();
+</script>
+
+<div x-data="redigerApp()" x-init="init()" class="min-h-screen">
+
+  <!-- Top bar -->
+  <header class="h-14 bg-surface-container-lowest border-b border-outline-variant flex items-center px-4 md:px-6 gap-4 sticky top-0 z-20 shadow-sm">
+    <a href="/dashboard.html" class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors">
+      <span class="material-symbols-outlined text-xl">arrow_back</span>
+      <span class="text-sm font-medium hidden sm:inline">Tilbage</span>
+    </a>
+    <div class="flex items-center gap-2 mr-auto">
+      <span class="text-sm font-medium text-on-surface-variant" x-text="tilbud.id || 'Rediger tilbud'"></span>
+      <span x-show="tilbud.status" :class="statusClass(tilbud.status)"
+        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ml-2" x-text="statusLabel(tilbud.status)"></span>
+    </div>
+    <span x-show="autoSaved" x-cloak class="text-xs text-on-surface-variant flex items-center gap-1">
+      <span class="material-symbols-outlined text-sm">cloud_done</span>
+      Gemt
+    </span>
+    <a :href="'/tilbud-preview.html?id=' + tilbud.id" target="_blank"
+      class="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm font-medium hover:bg-surface-container transition-colors active:scale-95">
+      <span class="material-symbols-outlined text-base">open_in_new</span>
+      Vis tilbud
+    </a>
+    <button @click="gem('kladde')" :disabled="saving"
+      class="px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm font-medium hover:bg-surface-container transition-colors active:scale-95 disabled:opacity-60">
+      Gem
+    </button>
+    <button @click="send()" :disabled="saving"
+      class="px-4 py-2 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary text-sm font-bold active:scale-95 transition-all shadow-md shadow-primary/20 disabled:opacity-60 flex items-center gap-1.5">
+      <span x-show="saving" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+      Send
+    </button>
+  </header>
+
+  <!-- Loading state -->
+  <div x-show="loadingTilbud" x-cloak class="flex items-center justify-center p-24">
+    <span class="material-symbols-outlined text-4xl text-on-surface-variant animate-spin">progress_activity</span>
+  </div>
+
+  <!-- Error state -->
+  <div x-show="!loadingTilbud && fetchError" x-cloak class="p-8 text-center">
+    <span class="material-symbols-outlined text-4xl text-error mb-4 block">error</span>
+    <h2 class="font-bold text-lg mb-2">Tilbud ikke fundet</h2>
+    <p class="text-on-surface-variant mb-6" x-text="fetchError"></p>
+    <a href="/dashboard.html" class="text-primary font-bold hover:underline">← Tilbage til oversigt</a>
+  </div>
+
+  <!-- Two-column layout -->
+  <div x-show="!loadingTilbud && !fetchError" x-cloak class="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
+
+    <!-- LEFT: Form (identical to tilbud-ny.html) -->
+    <div class="flex-1 overflow-auto p-4 md:p-6 space-y-6 lg:max-w-2xl">
+
+      <!-- Afsender -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">business</span>
+          Din virksomhed
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">Firmanavn</label>
+            <input x-model="tilbud.afsender.firmanavn" type="text" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Adresse</label>
+            <input x-model="tilbud.afsender.adresse" type="text" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">CVR-nummer</label>
+            <input x-model="tilbud.afsender.cvr" type="text" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="tilbud.afsender.telefon" type="tel" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">E-mail</label>
+            <input x-model="tilbud.afsender.email" type="email" class="field-input"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modtager -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">person</span>
+          Modtager
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Navn</label>
+            <input x-model="tilbud.modtager.navn" type="text" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Virksomhed</label>
+            <input x-model="tilbud.modtager.virksomhed" type="text" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Adresse</label>
+            <input x-model="tilbud.modtager.adresse" type="text" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">E-mail</label>
+            <input x-model="tilbud.modtager.email" type="email" class="field-input"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- Detaljer -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
+          Tilbudsdetaljer
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="field-label">Tilbudsnummer</label>
+            <input x-model="tilbud.id" type="text" readonly class="field-input bg-surface-container cursor-not-allowed text-on-surface-variant"/>
+          </div>
+          <div>
+            <label class="field-label">Dato</label>
+            <input x-model="tilbud.dato" type="date" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Gyldig til</label>
+            <input x-model="tilbud.gyldigTil" type="date" class="field-input"/>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Beskrivelse af opgaven</label>
+          <textarea x-model="tilbud.beskrivelse" rows="3" class="field-textarea"></textarea>
+        </div>
+      </section>
+
+      <!-- Linjer -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">table_rows</span>
+          Linjer
+        </h2>
+        <div class="hidden sm:grid grid-cols-12 gap-2 mb-2 px-1">
+          <div class="col-span-5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Antal</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Enhed</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
+          <div class="col-span-1"></div>
+        </div>
+        <div class="space-y-2">
+          <template x-for="(linje, i) in tilbud.linjer" :key="i">
+            <div class="grid grid-cols-12 gap-2 items-center">
+              <div class="col-span-12 sm:col-span-5">
+                <input x-model="linje.beskrivelse" type="text" placeholder="Beskrivelse" class="field-input"/>
+              </div>
+              <div class="col-span-4 sm:col-span-2">
+                <input x-model.number="linje.antal" type="number" min="0" step="0.01" class="field-input text-center"/>
+              </div>
+              <div class="col-span-4 sm:col-span-2">
+                <select x-model="linje.enhed" class="field-input text-center">
+                  <option value="stk">stk</option>
+                  <option value="time">time</option>
+                  <option value="m²">m²</option>
+                  <option value="m">m</option>
+                  <option value="m³">m³</option>
+                  <option value="dag">dag</option>
+                  <option value="sæt">sæt</option>
+                  <option value="ls">ls</option>
+                </select>
+              </div>
+              <div class="col-span-3 sm:col-span-2">
+                <input x-model.number="linje.enhedspris" type="number" min="0" step="0.01" class="field-input text-right"/>
+              </div>
+              <div class="col-span-1 flex justify-center">
+                <button @click="fjernLinje(i)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors">
+                  <span class="material-symbols-outlined text-base">remove_circle</span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+        <button @click="tilfoejLinje()" class="mt-4 flex items-center gap-2 text-primary font-bold text-sm hover:bg-primary/5 px-3 py-2 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-base">add_circle</span>
+          Tilføj linje
+        </button>
+        <div class="mt-6 pt-6 border-t-2 border-outline-variant/30 space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-on-surface-variant">Subtotal ekskl. moms</span>
+            <span x-text="formatKr(subtotal)"></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-on-surface-variant">Moms (25%)</span>
+            <span x-text="formatKr(moms)"></span>
+          </div>
+          <div class="flex justify-between text-lg font-bold pt-2 border-t border-outline-variant/30">
+            <span>Total inkl. moms</span>
+            <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Betingelser -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm pb-8">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">settings</span>
+          Betingelser
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Betalingsbetingelser</label>
+            <select x-model="tilbud.betalingsbetingelser" class="field-input">
+              <option value="netto8">Netto 8 dage</option>
+              <option value="netto14">Netto 14 dage</option>
+              <option value="netto30">Netto 30 dage</option>
+              <option value="straks">Betales straks</option>
+            </select>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Note til kunden</label>
+            <textarea x-model="tilbud.note" rows="3" class="field-textarea"></textarea>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT: Live preview (identical) -->
+    <div class="hidden lg:flex w-[420px] xl:w-[480px] bg-surface-container border-l border-outline-variant flex-col">
+      <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-on-surface-variant text-base">visibility</span>
+          <span class="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Forhåndsvisning</span>
+        </div>
+        <a :href="'/tilbud-preview.html?id=' + tilbud.id" target="_blank"
+          class="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+          <span class="material-symbols-outlined text-sm">open_in_new</span>
+          Åbn kundelink
+        </a>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+        <div class="bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/20 p-8 text-sm">
+          <div class="flex justify-between items-start mb-8 pb-6 border-b border-outline-variant/30">
+            <div>
+              <div class="w-16 h-8 bg-surface-container rounded mb-3"></div>
+              <p class="font-bold" x-text="tilbud.afsender.firmanavn || 'Firmanavn'"></p>
+              <p class="text-xs text-on-surface-variant" x-text="tilbud.afsender.adresse"></p>
+              <p class="text-xs text-on-surface-variant" x-text="tilbud.afsender.email"></p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Tilbud</p>
+              <p class="font-bold" x-text="tilbud.id"></p>
+              <p class="text-xs text-on-surface-variant mt-2" x-text="'Dato: ' + (tilbud.dato || '—')"></p>
+              <p class="text-xs text-on-surface-variant" x-text="'Gyldig til: ' + (tilbud.gyldigTil || '—')"></p>
+            </div>
+          </div>
+          <div class="mb-6">
+            <p class="font-bold" x-text="tilbud.modtager.navn"></p>
+            <p class="text-xs text-on-surface-variant" x-text="tilbud.modtager.adresse"></p>
+          </div>
+          <div class="space-y-2 mb-6">
+            <div class="grid grid-cols-12 text-xs font-bold uppercase tracking-wider text-on-surface-variant pb-2 border-b border-outline-variant/30">
+              <div class="col-span-6">Beskrivelse</div>
+              <div class="col-span-2 text-center">Antal</div>
+              <div class="col-span-2 text-center">Enhed</div>
+              <div class="col-span-2 text-right">Beløb</div>
+            </div>
+            <template x-for="linje in tilbud.linjer.filter(l => l.beskrivelse)">
+              <div class="grid grid-cols-12 text-xs py-1.5 border-b border-outline-variant/10">
+                <div class="col-span-6" x-text="linje.beskrivelse"></div>
+                <div class="col-span-2 text-center" x-text="linje.antal"></div>
+                <div class="col-span-2 text-center" x-text="linje.enhed"></div>
+                <div class="col-span-2 text-right" x-text="formatKr(linje.antal * linje.enhedspris)"></div>
+              </div>
+            </template>
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs text-on-surface-variant">
+              <span>Subtotal ekskl. moms</span><span x-text="formatKr(subtotal)"></span>
+            </div>
+            <div class="flex justify-between text-xs text-on-surface-variant">
+              <span>Moms 25%</span><span x-text="formatKr(moms)"></span>
+            </div>
+            <div class="flex justify-between font-bold text-sm pt-2 border-t-2 border-primary/20">
+              <span>Total inkl. moms</span>
+              <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div x-show="toast.show" x-cloak x-transition
+    class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2"
+    style="background:#31302d;color:#f4f0ea">
+    <span class="material-symbols-outlined text-base" x-text="toast.icon"></span>
+    <span x-text="toast.msg"></span>
+  </div>
+</div>
+
+<script>
+function redigerApp() {
+  return {
+    loadingTilbud: true,
+    fetchError: '',
+    saving: false,
+    autoSaved: false,
+    toast: { show: false, msg: '', icon: 'check_circle' },
+    tilbud: {
+      id: '', status: 'kladde', dato: '', gyldigTil: '', beskrivelse: '',
+      afsender: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '' },
+      modtager: { navn: '', virksomhed: '', adresse: '', email: '' },
+      linjer: [{ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }],
+      betalingsbetingelser: 'netto14', note: '',
+    },
+
+    async init() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) { window.location.href = '/tilbud-ny.html'; return; }
+      await this.hentTilbud(id);
+      setInterval(() => this.autoGem(), 30000);
+    },
+
+    async hentTilbud(id) {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-tilbud?id=' + encodeURIComponent(id), {
+          headers: { 'Authorization': 'Bearer ' + s.access_token }
+        });
+        if (!res.ok) { this.fetchError = 'Tilbuddet blev ikke fundet.'; this.loadingTilbud = false; return; }
+        const data = await res.json();
+        this.tilbud = { ...this.tilbud, ...data };
+        if (!this.tilbud.linjer?.length) this.tilbud.linjer = [{ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }];
+      } catch(e) {
+        this.fetchError = 'Netværksfejl ved hentning af tilbud.';
+      }
+      this.loadingTilbud = false;
+    },
+
+    get subtotal() { return this.tilbud.linjer.reduce((s, l) => s + (l.antal||0)*(l.enhedspris||0), 0); },
+    get moms() { return this.subtotal * 0.25; },
+    get total() { return this.subtotal + this.moms; },
+
+    tilfoejLinje() { this.tilbud.linjer.push({ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }); },
+    fjernLinje(i) { if (this.tilbud.linjer.length > 1) this.tilbud.linjer.splice(i, 1); },
+
+    formatKr(v) { return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v || 0); },
+
+    statusClass(s) {
+      return { 'kladde': 'bg-surface-container-high text-on-surface-variant', 'sendt': 'bg-blue-100 text-blue-800', 'accepteret': 'bg-green-100 text-green-800', 'afvist': 'bg-red-100 text-red-700' }[s] || '';
+    },
+    statusLabel(s) { return { 'kladde': 'Kladde', 'sendt': 'Sendt', 'accepteret': 'Accepteret', 'afvist': 'Afvist' }[s] || ''; },
+
+    async gem(status) {
+      this.saving = true;
+      try {
+        const payload = { ...this.tilbud, status: status || this.tilbud.status, total: this.total, subtotal: this.subtotal, moms: this.moms };
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-tilbud', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.tilbud) { this.autoSaved = true; this.visToast('Gemt', 'check_circle'); }
+      } catch(e) { this.visToast('Fejl ved gemning', 'error'); }
+      this.saving = false;
+    },
+
+    async autoGem() { if (!this.autoSaved) await this.gem(); },
+
+    async send() {
+      await this.gem('sendt');
+      const link = window.location.origin + '/tilbud-preview.html?id=' + this.tilbud.id;
+      await navigator.clipboard.writeText(link).catch(() => {});
+      this.visToast('Link kopieret!', 'link');
+    },
+
+    visToast(msg, icon = 'check_circle') {
+      this.toast = { show: true, msg, icon };
+      setTimeout(() => { this.toast.show = false; }, 3000);
+    }
+  };
+}
+</script>
+</body>
+</html>

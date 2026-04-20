@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="light" lang="da"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Plus+Jakarta+Sans:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#d7e2ff",
+                        "on-secondary-container": "#77361a",
+                        "on-primary-container": "#fffbff",
+                        "on-tertiary-container": "#fefcff",
+                        "on-surface": "#1c1c18",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#f1ede7",
+                        "secondary-container": "#fea27d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#31302d",
+                        "primary-fixed-dim": "#ffb599",
+                        "inverse-on-surface": "#f4f0ea",
+                        "on-primary-fixed": "#370e00",
+                        "primary": "#a23900",
+                        "surface-variant": "#e6e2dc",
+                        "on-primary-fixed-variant": "#7f2b00",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#1c1c18",
+                        "surface-bright": "#fdf9f3",
+                        "on-secondary-fixed-variant": "#743417",
+                        "on-surface-variant": "#594138",
+                        "surface-dim": "#ddd9d4",
+                        "outline": "#8d7167",
+                        "surface-container-low": "#f7f3ed",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#004491",
+                        "background": "#fdf9f3",
+                        "on-error": "#ffffff",
+                        "primary-container": "#cb4a01",
+                        "primary-fixed": "#ffdbce",
+                        "tertiary": "#0059b9",
+                        "secondary-fixed": "#ffdbce",
+                        "surface": "#fdf9f3",
+                        "surface-tint": "#a63b00",
+                        "outline-variant": "#e1bfb3",
+                        "tertiary-container": "#0071e8",
+                        "on-tertiary-fixed": "#001a40",
+                        "inverse-primary": "#ffb599",
+                        "secondary-fixed-dim": "#ffb599",
+                        "tertiary-fixed-dim": "#acc7ff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#ebe8e2",
+                        "on-secondary-fixed": "#370e00",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e6e2dc",
+                        "secondary": "#924a2c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Plus Jakarta Sans", "sans-serif"],
+                        "label": ["Plus Jakarta Sans", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1, h2, h3, .font-serif { font-family: 'Newsreader', serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary-fixed">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-sm dark:shadow-none">
+<div class="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
+<div class="text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="hammer">humerus</span>
+                Mesterbud
+            </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors" href="#">Funktioner</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors" href="#">Priser</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors" href="#">Log ind</a>
+<a class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold active:scale-95 transition-transform duration-200" href="#">Prøv gratis</a>
+</div>
+<button class="md:hidden text-on-surface">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<main class="pt-20">
+<!-- Hero Section -->
+<section class="relative overflow-hidden pt-16 pb-24 md:pt-32 md:pb-40">
+<div class="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+<div class="space-y-8">
+<span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium tracking-tight">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        Bygget til danske håndværkere
+                    </span>
+<h1 class="text-5xl md:text-7xl font-bold leading-[1.1] text-on-surface tracking-tight">
+                        Send professionelle tilbud på <span class="italic text-primary">under 5 minutter</span>
+</h1>
+<p class="text-xl text-on-surface-variant max-w-xl leading-relaxed">
+                        Mesterbud hjælper dig med at vinde flere opgaver ved at gøre dine tilbud knivskarpe, overskuelige og nemme at underskrive digitalt.
+                    </p>
+<div class="flex flex-wrap gap-4">
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-lg font-bold text-lg active:scale-95 transition-all shadow-xl shadow-primary/10">
+                            Prøv gratis i 14 dage
+                        </button>
+<button class="bg-surface-container-highest text-on-surface px-8 py-4 rounded-lg font-bold text-lg active:scale-95 transition-all">
+                            Se hvordan det virker
+                        </button>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -inset-4 bg-primary/5 rounded-3xl blur-3xl -z-10"></div>
+<div class="bg-surface-container-lowest rounded-xl shadow-2xl p-8 border border-outline-variant/20 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+<div class="flex justify-between items-start mb-10">
+<div>
+<div class="h-8 w-32 bg-surface-container-high rounded mb-4"></div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Fra</p>
+<p class="font-serif font-bold text-lg">Mesterbyg ApS</p>
+</div>
+<div class="text-right">
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">Kunde</p>
+<p class="font-serif font-bold text-lg">Morten Nielsen</p>
+</div>
+</div>
+<div class="space-y-6">
+<div class="grid grid-cols-4 border-b border-surface-container-high pb-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+<div class="col-span-2">Beskrivelse</div>
+<div class="text-right">Antal</div>
+<div class="text-right">Pris</div>
+</div>
+<div class="grid grid-cols-4 text-sm font-medium">
+<div class="col-span-2">Nyt gavlparti i eg</div>
+<div class="text-right">1 stk.</div>
+<div class="text-right">45.000,00</div>
+</div>
+<div class="grid grid-cols-4 text-sm font-medium">
+<div class="col-span-2">Montering &amp; efterbehandling</div>
+<div class="text-right">12 t.</div>
+<div class="text-right">8.400,00</div>
+</div>
+<div class="mt-12 pt-6 border-t-2 border-primary/20 flex justify-between items-end">
+<div class="text-xs text-on-surface-variant">Betalingsbetingelser: 8 dage netto</div>
+<div class="text-right">
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-widest">Total inkl. moms</p>
+<p class="text-3xl font-serif font-black text-primary">66.750,00 kr.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Features Bento Grid -->
+<section class="py-24 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-6 lg:px-8">
+<div class="text-center mb-20">
+<h2 class="text-4xl md:text-5xl font-bold mb-6">Det rigtige værktøj til opgaven</h2>
+<p class="text-on-surface-variant text-lg max-w-2xl mx-auto">Vi har fjernet alt det overflødige kontorarbejde, så du kan fokusere på dit håndværk.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Feature 1 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl group hover:shadow-lg transition-all duration-300">
+<div class="w-14 h-14 bg-surface-container rounded-lg flex items-center justify-center mb-8 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="edit_document">edit_document</span>
+</div>
+<h3 class="text-2xl font-bold mb-4">Skabeloner til din branche</h3>
+<p class="text-on-surface-variant leading-relaxed">Uanset om du er tømrer, murer eller VVS’er, har vi skræddersyede skabeloner der passer til dine behov.</p>
+</div>
+<!-- Feature 2 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl group hover:shadow-lg transition-all duration-300">
+<div class="w-14 h-14 bg-surface-container rounded-lg flex items-center justify-center mb-8 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="draw">draw</span>
+</div>
+<h3 class="text-2xl font-bold mb-4">Digital signatur</h3>
+<p class="text-on-surface-variant leading-relaxed">Få dine kunder til at acceptere tilbuddet direkte på mobilen med det samme. Ingen printer nødvendig.</p>
+</div>
+<!-- Feature 3 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl group hover:shadow-lg transition-all duration-300">
+<div class="w-14 h-14 bg-surface-container rounded-lg flex items-center justify-center mb-8 text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="notifications_active">notifications_active</span>
+</div>
+<h3 class="text-2xl font-bold mb-4">Automatisk opfølgning</h3>
+<p class="text-on-surface-variant leading-relaxed">Systemet minder automatisk din kunde om det ubesvarede tilbud, så du aldrig misser en sag igen.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- App Preview (Focus Interaction) -->
+<section class="py-24">
+<div class="max-w-7xl mx-auto px-6 lg:px-8">
+<div class="bg-surface-container-high rounded-3xl overflow-hidden p-8 md:p-12 lg:p-16">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<div class="lg:col-span-4 self-center space-y-6">
+<h2 class="text-4xl font-bold">Enkelhed i hver eneste detalje</h2>
+<p class="text-on-surface-variant">Glem tunge ERP-systemer. Mesterbud er bygget til at blive brugt på farten, midt i støvet eller i varevognen.</p>
+<ul class="space-y-4">
+<li class="flex items-center gap-3 font-medium">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="check_circle" data-weight="fill">check_circle</span>
+                                    Hurtig indtastning af linjer
+                                </li>
+<li class="flex items-center gap-3 font-medium">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="check_circle" data-weight="fill">check_circle</span>
+                                    Live moms-beregning
+                                </li>
+<li class="flex items-center gap-3 font-medium">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="check_circle" data-weight="fill">check_circle</span>
+                                    Upload billeder af opgaven
+                                </li>
+</ul>
+</div>
+<div class="lg:col-span-8">
+<div class="bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/30 overflow-hidden">
+<div class="bg-surface-variant p-4 flex items-center gap-2">
+<div class="flex gap-1.5">
+<div class="w-3 h-3 rounded-full bg-red-400"></div>
+<div class="w-3 h-3 rounded-full bg-amber-400"></div>
+<div class="w-3 h-3 rounded-full bg-green-400"></div>
+</div>
+<div class="ml-4 flex-1 h-6 bg-surface-container-low rounded-md text-[10px] flex items-center px-3 text-on-surface-variant">mesterbud.dk/tilbud/ny-opgave</div>
+</div>
+<div class="p-8">
+<div class="grid grid-cols-2 gap-8 mb-8">
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Min virksomhed</label>
+<div class="h-10 bg-surface-container-low rounded px-4 flex items-center text-sm font-medium">Mesterbyg ApS</div>
+</div>
+<div class="space-y-2">
+<label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Modtager</label>
+<div class="h-10 bg-surface-container-low border-b-2 border-primary rounded px-4 flex items-center text-sm font-medium">Niels Jensen, Strandvejen 4...</div>
+</div>
+</div>
+<div class="space-y-4 mb-10">
+<div class="grid grid-cols-12 gap-4 items-end">
+<div class="col-span-6 space-y-1">
+<label class="text-[10px] font-bold text-on-surface-variant">Beskrivelse</label>
+<div class="h-10 bg-surface-container-low rounded px-4 flex items-center text-sm">Udskiftning af vindue</div>
+</div>
+<div class="col-span-2 space-y-1 text-right">
+<label class="text-[10px] font-bold text-on-surface-variant">Mængde</label>
+<div class="h-10 bg-surface-container-low rounded px-4 flex items-center justify-end text-sm">4</div>
+</div>
+<div class="col-span-4 space-y-1 text-right">
+<label class="text-[10px] font-bold text-on-surface-variant">Pris ekskl. moms</label>
+<div class="h-10 bg-surface-container-low rounded px-4 flex items-center justify-end text-sm">3.200,00</div>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-4 items-end">
+<div class="col-span-6">
+<div class="h-10 bg-surface-container-low rounded px-4 flex items-center text-sm italic text-on-surface-variant">Tilføj ny linje...</div>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-center border-t border-surface-container pt-8">
+<button class="flex items-center gap-2 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-lg" data-icon="visibility">visibility</span>
+                                            Forhåndsvisning
+                                        </button>
+<div class="text-right">
+<p class="text-[10px] font-bold uppercase text-on-surface-variant">Totalbeløb</p>
+<p class="text-2xl font-serif font-black">16.000,00 kr.</p>
+<p class="text-[10px] text-on-surface-variant">Heraf moms: 3.200,00 kr.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Pricing Section -->
+<section class="py-24 bg-surface">
+<div class="max-w-7xl mx-auto px-6 lg:px-8">
+<div class="text-center mb-16">
+<h2 class="text-4xl md:text-5xl font-bold mb-4">Priser der er til at forstå</h2>
+<p class="text-on-surface-variant">Ingen skjulte gebyrer eller lange bindinger. Opsig når du vil.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+<!-- Basic -->
+<div class="bg-surface-container-low p-12 rounded-xl border border-transparent hover:border-outline-variant transition-all">
+<h3 class="text-2xl font-bold mb-2">Basis</h3>
+<p class="text-on-surface-variant mb-8">Til den nystartede mester</p>
+<div class="flex items-baseline gap-1 mb-10">
+<span class="text-5xl font-serif font-black">199</span>
+<span class="text-on-surface-variant font-bold">kr/md</span>
+</div>
+<ul class="space-y-5 mb-12">
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Op til 10 tilbud om måneden
+                            </li>
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Standard skabeloner
+                            </li>
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Digital signatur
+                            </li>
+</ul>
+<button class="w-full py-4 rounded-lg border-2 border-primary text-primary font-bold active:scale-95 transition-all">Vælg Basis</button>
+</div>
+<!-- Pro -->
+<div class="relative bg-surface-container-lowest p-12 rounded-xl shadow-2xl border-2 border-primary transform md:-translate-y-4">
+<div class="absolute top-0 right-12 transform -translate-y-1/2 bg-primary text-on-primary px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                            Mest populær
+                        </div>
+<h3 class="text-2xl font-bold mb-2">Pro</h3>
+<p class="text-on-surface-variant mb-8">Når du har fart på forretningen</p>
+<div class="flex items-baseline gap-1 mb-10">
+<span class="text-5xl font-serif font-black">349</span>
+<span class="text-on-surface-variant font-bold">kr/md</span>
+</div>
+<ul class="space-y-5 mb-12">
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Ubegrænsede tilbud
+                            </li>
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Brugerdefinerede skabeloner
+                            </li>
+<li class="flex items-start gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Automatisk opfølgning
+                            </li>
+<li class="flex items-start gap-3 text-sm font-bold text-primary">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="done">done</span>
+                                Prioriteret support
+                            </li>
+</ul>
+<button class="w-full py-4 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold active:scale-95 transition-all shadow-lg shadow-primary/20">Vælg Pro</button>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-24">
+<div class="max-w-7xl mx-auto px-6">
+<div class="bg-[#1A1A18] rounded-[2rem] p-12 md:p-24 text-center overflow-hidden relative">
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#a23900 1px, transparent 1px); background-size: 24px 24px;"></div>
+<div class="relative z-10">
+<h2 class="text-4xl md:text-6xl font-serif font-bold text-white mb-8">Klar til at se professionel ud?</h2>
+<p class="text-stone-400 text-xl max-w-xl mx-auto mb-12">Det tager kun 2 minutter at oprette din konto og sende dit første tilbud.</p>
+<button class="bg-[#D4500A] text-white px-12 py-5 rounded-lg font-bold text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-orange-900/50">
+                            Opret gratis konto
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full pt-20 pb-10 bg-stone-100 dark:bg-stone-950">
+<div class="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-12 items-end">
+<div class="space-y-6">
+<div class="text-xl font-serif font-bold text-stone-900 dark:text-stone-50">Mesterbud</div>
+<div class="flex flex-wrap gap-x-8 gap-y-4">
+<a class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-500 hover:text-orange-800 transition-colors" href="#">Funktioner</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-500 hover:text-orange-800 transition-colors" href="#">Priser</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-500 hover:text-orange-800 transition-colors" href="#">Log ind</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-500 hover:text-orange-800 transition-colors" href="#">Vilkår</a>
+<a class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-500 hover:text-orange-800 transition-colors" href="#">Privatliv</a>
+</div>
+</div>
+<div class="md:text-right space-y-2">
+<p class="font-['Plus_Jakarta_Sans'] text-sm tracking-tight text-stone-600 dark:text-stone-400">Mesterbud er bygget i Danmark 🇩🇰</p>
+<p class="font-['Plus_Jakarta_Sans'] text-xs tracking-tight text-stone-400">© 2026 Mesterbud ApS. Alle rettigheder forbeholdes.</p>
+</div>
+</div>
+</footer>
+</body></html>

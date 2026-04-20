@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Log ind – Mesterbud</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "on-surface": "#1c1c18", "on-surface-variant": "#594138",
+      "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+  [x-cloak] { display: none !important; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-surface-container-low min-h-screen flex flex-col items-center justify-center p-4">
+
+<script>
+  const s = localStorage.getItem('gotrue-session');
+  if (s) {
+    try {
+      const t = JSON.parse(s);
+      const p = JSON.parse(atob(t.access_token.split('.')[1]));
+      if (p.exp > Date.now() / 1000) window.location.href = '/dashboard.html';
+    } catch(e) { localStorage.removeItem('gotrue-session'); }
+  }
+</script>
+
+<div x-data="{
+  view: 'login',
+  email: '',
+  password: '',
+  loading: false,
+  error: '',
+  resetEmail: '',
+  resetLoading: false,
+  resetSent: false,
+  resetError: '',
+
+  async login() {
+    this.loading = true;
+    this.error = '';
+    try {
+      const res = await fetch('/.netlify/identity/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=password&username=' + encodeURIComponent(this.email) + '&password=' + encodeURIComponent(this.password)
+      });
+      const data = await res.json();
+      if (data.access_token) {
+        localStorage.setItem('gotrue-session', JSON.stringify(data));
+        window.location.href = '/dashboard.html';
+      } else {
+        this.error = data.error_description || 'Forkert e-mail eller adgangskode.';
+      }
+    } catch(e) {
+      this.error = 'Netværksfejl – prøv igen.';
+    }
+    this.loading = false;
+  },
+
+  async sendReset() {
+    this.resetLoading = true;
+    this.resetError = '';
+    try {
+      const res = await fetch('/.netlify/identity/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: this.resetEmail })
+      });
+      if (res.ok || res.status === 204) {
+        this.resetSent = true;
+      } else {
+        const d = await res.json().catch(() => ({}));
+        this.resetError = d.msg || 'Noget gik galt – prøv igen.';
+      }
+    } catch(e) {
+      this.resetError = 'Netværksfejl – prøv igen.';
+    }
+    this.resetLoading = false;
+  }
+}" class="w-full max-w-md">
+
+  <!-- Logo -->
+  <a href="/" class="flex items-center gap-2 mb-8 justify-center">
+    <span class="material-symbols-outlined text-primary text-3xl">handyman</span>
+    <span class="text-2xl font-bold" style="font-family: Newsreader, serif">Mesterbud</span>
+  </a>
+
+  <!-- LOGIN VIEW -->
+  <div x-show="view === 'login'" class="bg-surface-container-lowest rounded-xl shadow-xl p-8 border border-outline-variant/30">
+    <h1 class="text-2xl font-bold mb-1 text-on-surface">Velkommen tilbage</h1>
+    <p class="text-on-surface-variant text-sm mb-8">Log ind på din konto for at fortsætte.</p>
+
+    <div x-show="error" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm mb-6 flex items-start gap-2">
+      <span class="material-symbols-outlined text-base mt-0.5">error</span>
+      <span x-text="error"></span>
+    </div>
+
+    <form @submit.prevent="login" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">E-mail</label>
+        <input x-model="email" type="email" required autocomplete="email"
+          placeholder="din@email.dk"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">Adgangskode</label>
+          <button type="button" @click="view = 'reset'; resetEmail = email"
+            class="text-xs text-primary hover:underline font-medium">
+            Glemt adgangskode?
+          </button>
+        </div>
+        <input x-model="password" type="password" required autocomplete="current-password"
+          placeholder="••••••••"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+
+      <button type="submit" :disabled="loading"
+        class="w-full h-12 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-lg active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70">
+        <span x-show="loading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+        <span x-text="loading ? 'Logger ind...' : 'Log ind'"></span>
+      </button>
+    </form>
+
+    <div class="mt-6 pt-6 border-t border-outline-variant/40 text-center text-sm text-on-surface-variant">
+      Har du ikke en konto?
+      <a href="/signup.html" class="text-primary font-bold hover:underline ml-1">Opret gratis konto</a>
+    </div>
+  </div>
+
+  <!-- GLEMT ADGANGSKODE VIEW -->
+  <div x-show="view === 'reset'" x-cloak class="bg-surface-container-lowest rounded-xl shadow-xl p-8 border border-outline-variant/30">
+
+    <!-- Success -->
+    <div x-show="resetSent" class="text-center">
+      <span class="material-symbols-outlined text-5xl text-primary mb-4 block">mark_email_read</span>
+      <h2 class="text-xl font-bold mb-2">Tjek din e-mail</h2>
+      <p class="text-on-surface-variant text-sm mb-6">Vi har sendt et nulstillingslink til <strong x-text="resetEmail"></strong>. Klik på linket i e-mailen for at vælge en ny adgangskode.</p>
+      <button @click="view = 'login'; resetSent = false; resetEmail = ''"
+        class="w-full h-11 bg-surface-container text-on-surface font-bold rounded-lg active:scale-95 transition-all text-sm">
+        ← Tilbage til log ind
+      </button>
+    </div>
+
+    <!-- Form -->
+    <div x-show="!resetSent">
+      <button @click="view = 'login'" class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface text-sm mb-6 transition-colors">
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        Tilbage
+      </button>
+
+      <h1 class="text-2xl font-bold mb-1">Glemt adgangskode?</h1>
+      <p class="text-on-surface-variant text-sm mb-8">Indtast din e-mail – vi sender dig et link til at nulstille din adgangskode.</p>
+
+      <div x-show="resetError" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm mb-5 flex items-start gap-2">
+        <span class="material-symbols-outlined text-base mt-0.5">error</span>
+        <span x-text="resetError"></span>
+      </div>
+
+      <form @submit.prevent="sendReset" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">E-mail</label>
+          <input x-model="resetEmail" type="email" required autocomplete="email"
+            placeholder="din@email.dk"
+            class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+        <button type="submit" :disabled="resetLoading"
+          class="w-full h-12 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-lg active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70">
+          <span x-show="resetLoading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+          <span x-text="resetLoading ? 'Sender...' : 'Send nulstillingslink'"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-on-surface-variant mt-6">
+    © 2026 Mesterbud ApS &nbsp;·&nbsp; Bygget i Danmark 🇩🇰
+  </p>
+</div>
+</body>
+</html>

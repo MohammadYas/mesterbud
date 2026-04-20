@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Opret konto – Mesterbud</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "on-surface": "#1c1c18", "on-surface-variant": "#594138",
+      "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-surface-container-low min-h-screen flex flex-col items-center justify-center p-4">
+
+<div x-data="{
+  navn: '',
+  email: '',
+  password: '',
+  password2: '',
+  loading: false,
+  error: '',
+  success: false,
+  async signup() {
+    this.error = '';
+    if (this.password !== this.password2) { this.error = 'Adgangskoderne stemmer ikke overens.'; return; }
+    if (this.password.length < 8) { this.error = 'Adgangskoden skal være mindst 8 tegn.'; return; }
+    this.loading = true;
+    try {
+      const res = await fetch('/.netlify/identity/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: this.email, password: this.password, data: { full_name: this.navn } })
+      });
+      const data = await res.json();
+      if (data.id || data.email) {
+        // Auto-login
+        const loginRes = await fetch('/.netlify/identity/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'grant_type=password&username=' + encodeURIComponent(this.email) + '&password=' + encodeURIComponent(this.password)
+        });
+        const loginData = await loginRes.json();
+        if (loginData.access_token) {
+          localStorage.setItem('gotrue-session', JSON.stringify(loginData));
+          window.location.href = '/dashboard.html?checkout=new';
+        } else {
+          this.success = true;
+        }
+      } else {
+        this.error = data.msg || data.error_description || 'Oprettelse fejlede – e-mail er muligvis allerede i brug.';
+      }
+    } catch(e) {
+      this.error = 'Netværksfejl – prøv igen.';
+    }
+    this.loading = false;
+  }
+}" class="w-full max-w-md">
+
+  <!-- Logo -->
+  <a href="/" class="flex items-center gap-2 mb-8 justify-center">
+    <span class="material-symbols-outlined text-primary text-3xl">handyman</span>
+    <span class="text-2xl font-bold" style="font-family: Newsreader, serif">Mesterbud</span>
+  </a>
+
+  <!-- Trial badge -->
+  <div class="flex items-center justify-center gap-2 mb-6">
+    <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium">
+      <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      14 dages gratis prøveperiode – intet kreditkort
+    </span>
+  </div>
+
+  <!-- Card -->
+  <div class="bg-surface-container-lowest rounded-xl shadow-xl p-8 border border-outline-variant/30">
+    <h1 class="text-2xl font-bold mb-1 text-on-surface">Opret din konto</h1>
+    <p class="text-on-surface-variant text-sm mb-8">Kom i gang på 2 minutter. Intet kreditkort kræves.</p>
+
+    <!-- Success -->
+    <div x-show="success" x-cloak class="bg-surface-container p-6 rounded-xl text-center">
+      <span class="material-symbols-outlined text-4xl text-primary mb-3 block">mark_email_read</span>
+      <h2 class="font-bold text-lg mb-2">Tjek din e-mail</h2>
+      <p class="text-sm text-on-surface-variant">Vi har sendt dig et bekræftelseslink til <strong x-text="email"></strong>. Klik på linket for at aktivere din konto.</p>
+    </div>
+
+    <!-- Error -->
+    <div x-show="error && !success" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm mb-6 flex items-start gap-2">
+      <span class="material-symbols-outlined text-base mt-0.5">error</span>
+      <span x-text="error"></span>
+    </div>
+
+    <form x-show="!success" @submit.prevent="signup" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Dit navn</label>
+        <input x-model="navn" type="text" required autocomplete="name"
+          placeholder="Jens Hansen"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">E-mail</label>
+        <input x-model="email" type="email" required autocomplete="email"
+          placeholder="din@email.dk"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Adgangskode</label>
+        <input x-model="password" type="password" required autocomplete="new-password"
+          placeholder="Mindst 8 tegn"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Gentag adgangskode</label>
+        <input x-model="password2" type="password" required autocomplete="new-password"
+          placeholder="••••••••"
+          class="w-full h-11 bg-surface-container-low border border-outline-variant rounded-lg px-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+
+      <button type="submit"
+        :disabled="loading"
+        class="w-full h-12 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold rounded-lg active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70">
+        <span x-show="loading" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+        <span x-text="loading ? 'Opretter konto...' : 'Opret gratis konto'"></span>
+      </button>
+
+      <p class="text-xs text-on-surface-variant text-center">
+        Ved oprettelse accepterer du vores
+        <a href="#" class="text-primary hover:underline">vilkår</a> og
+        <a href="#" class="text-primary hover:underline">privatlivspolitik</a>.
+      </p>
+    </form>
+
+    <div class="mt-6 pt-6 border-t border-outline-variant/40 text-center text-sm text-on-surface-variant">
+      Har du allerede en konto?
+      <a href="/login.html" class="text-primary font-bold hover:underline ml-1">Log ind her</a>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-on-surface-variant mt-6">
+    © 2026 Mesterbud ApS &nbsp;·&nbsp; Bygget i Danmark 🇩🇰
+  </p>
+</div>
+</body>
+</html>

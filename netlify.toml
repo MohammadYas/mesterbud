@@ -1,0 +1,83 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[[redirects]]
+  from = "/api/save-tilbud"
+  to = "/.netlify/functions/save-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-tilbud"
+  to = "/.netlify/functions/get-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-tilbud-public"
+  to = "/.netlify/functions/get-tilbud-public"
+  status = 200
+
+[[redirects]]
+  from = "/api/update-tilbud-status"
+  to = "/.netlify/functions/update-tilbud-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-user"
+  to = "/.netlify/functions/get-user"
+  status = 200
+
+[[redirects]]
+  from = "/api/save-user"
+  to = "/.netlify/functions/save-user"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-checkout"
+  to = "/.netlify/functions/create-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/stripe-webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer-portal"
+  to = "/.netlify/functions/customer-portal"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-generer-tilbud"
+  to = "/.netlify/functions/ai-generer-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-analyser-foto"
+  to = "/.netlify/functions/ai-analyser-foto"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-opfoelgning"
+  to = "/.netlify/functions/ai-opfoelgning"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-vindanalyse"
+  to = "/.netlify/functions/ai-vindanalyse"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-opfoelgning"
+  to = "/.netlify/functions/send-opfoelgning"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[functions]
+  node_bundler = "esbuild"
