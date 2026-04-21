@@ -148,27 +148,50 @@ tailwind.config = {
       <a href="/konto.html" class="font-bold underline ml-auto">Vælg plan →</a>
     </div>
 
-    <!-- Loading -->
-    <div x-show="loading" x-cloak class="flex-1 flex items-center justify-center">
-      <span class="material-symbols-outlined text-4xl text-on-surface-variant animate-spin">progress_activity</span>
+    <!-- Loading skeleton -->
+    <div x-show="loading" x-cloak class="p-6 md:p-8 space-y-8">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <template x-for="i in 3" :key="i">
+          <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm animate-pulse">
+            <div class="h-3 bg-surface-container-high rounded w-2/3 mb-4"></div>
+            <div class="h-8 bg-surface-container-high rounded w-1/3"></div>
+          </div>
+        </template>
+      </div>
+      <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden animate-pulse">
+        <div class="px-5 py-4 border-b border-outline-variant/30 h-12 bg-surface-container-low"></div>
+        <div class="p-5 space-y-3">
+          <template x-for="i in 4" :key="i">
+            <div class="flex gap-4">
+              <div class="flex-1 h-4 bg-surface-container-high rounded"></div>
+              <div class="w-24 h-4 bg-surface-container-high rounded"></div>
+              <div class="w-20 h-4 bg-surface-container-high rounded"></div>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- OVERSIGT VIEW -->
     <div x-show="!loading && currentView === 'oversigt'" x-cloak class="p-6 md:p-8 space-y-8">
 
       <!-- Metric cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Tilbud denne måned</p>
           <p class="text-3xl font-bold" style="font-family: Newsreader, serif" x-text="metrics.denneMaaned"></p>
         </div>
         <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Accepterede tilbud</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Accepterede</p>
           <p class="text-3xl font-bold text-green-700" style="font-family: Newsreader, serif" x-text="metrics.accepterede"></p>
         </div>
         <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Afventer svar</p>
           <p class="text-3xl font-bold text-tertiary" style="font-family: Newsreader, serif" x-text="metrics.afventende"></p>
+        </div>
+        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Acceptrate</p>
+          <p class="text-3xl font-bold text-primary" style="font-family: Newsreader, serif" x-text="metrics.acceptrate + '%'"></p>
         </div>
       </div>
 
@@ -481,10 +504,12 @@ function app() {
       try {
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch('/api/get-tilbud', {
-          headers: { 'Authorization': 'Bearer ' + s.access_token }
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'alle' })
         });
         if (res.ok) this.tilbud = await res.json();
-      } catch(e) { console.error('Kunne ikke hente tilbud:', e); }
+      } catch(e) { /* stille fejl */ }
     },
 
     async loadUser() {
@@ -508,10 +533,14 @@ function app() {
         const d = new Date(t.oprettet || t.opdateret);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       });
+      const accepterede = this.tilbud.filter(t => t.status === 'accepteret').length;
+      const sendte = this.tilbud.filter(t => ['sendt','accepteret','afvist'].includes(t.status)).length;
+      const acceptrate = sendte > 0 ? Math.round((accepterede / sendte) * 100) : 0;
       return {
         denneMaaned: thisMo.length,
-        accepterede: this.tilbud.filter(t => t.status === 'accepteret').length,
+        accepterede,
         afventende: this.tilbud.filter(t => t.status === 'sendt').length,
+        acceptrate,
       };
     },
 

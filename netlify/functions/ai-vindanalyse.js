@@ -1,10 +1,9 @@
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse, CORS_HEADERS,
 } = require('./_security');
 
-// Vindanalyse er dyrt (mange tokens) – lav daglig grænse
 const DAGLIG_AI_KVOTE = 10;
 const MIN_TILBUD = 5;
 
@@ -31,7 +30,6 @@ exports.handler = async (event, context) => {
   const { user } = context.clientContext || {};
   if (!user) return { statusCode: 401, headers, body: JSON.stringify({ error: 'Ikke autoriseret' }) };
 
-  // Burst: maks. 2/min (analyse er tung)
   const rl = checkRateLimit(`ai-vind:${user.sub}`, 2, 60_000);
   if (rl.limited) return rateLimitResponse(rl.retryAfter);
 
@@ -42,20 +40,19 @@ exports.handler = async (event, context) => {
     const raw = await store.get(`profil/${user.sub}`);
     const profil = raw ? JSON.parse(raw) : {};
     if (profil.plan !== 'pro') {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: 'pro_required', message: 'Denne funktion kræver Pro-abonnement' }) };
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Kræver Pro-abonnement', kræverPro: true }) };
     }
   } catch {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Kunne ikke verificere abonnement' }) };
   }
 
-  // Daglig kvote
   const tilladt = await checkOgInkrementerKvote(store, user.sub);
   if (!tilladt) {
     return { statusCode: 429, headers, body: JSON.stringify({ error: `Daglig analyse-grænse på ${DAGLIG_AI_KVOTE} kald nået. Prøv igen i morgen.` }) };
   }
 
   try {
-    // Hent alle tilbud
+    // Hent alle tilbud for bruger
     const list = await store.list({ prefix: `tilbud/${user.sub}/` });
     const raws = await Promise.all(list.blobs.map(b => store.get(b.key)));
     const tilbud = raws.filter(Boolean).map(r => {
@@ -67,6 +64,7 @@ exports.handler = async (event, context) => {
         statusCode: 200,
         headers,
         body: JSON.stringify({
+          fejl: 'for_få_tilbud',
           raad: null,
           message: `Du skal have mindst ${MIN_TILBUD} tilbud for at få analyse (du har ${tilbud.length})`,
           minimumTilbud: true,
@@ -74,9 +72,12 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // Beregn statistik
+    const sendte = tilbud.filter(t => t.status !== 'kladde');
+    const accepterede = tilbud.filter(t => t.status === 'accepteret');
+    const acceptRate = sendte.length > 0 ? Math.round((accepterede.length / sendte.length) * 100) : 0;
+    const gennemsnit = tilbud.length > 0 ? Math.round(tilbud.reduce((s, t) => s + (t.total || 0), 0) / tilbud.length) : 0;
 
-    // Lav minimal dataoversigt (hold tokens nede)
     const oversigt = tilbud.map(t => ({
       status: t.status,
       total: t.total,
@@ -88,31 +89,36 @@ exports.handler = async (event, context) => {
 Analyser disse tilbudsdata og returner KUN valid JSON:
 {
   "raad": [
-    "konkret råd 1 (max 15 ord, brug tal fra data)",
-    "konkret råd 2 (max 15 ord, brug tal fra data)",
-    "konkret råd 3 (max 15 ord, brug tal fra data)"
+    "konkret råd 1 (max 2 sætninger, brug tal fra data)",
+    "konkret råd 2 (max 2 sætninger, brug tal fra data)",
+    "konkret råd 3 (max 2 sætninger, brug tal fra data)"
   ]
 }
-Vær specifik og brug data. Ingen generelle råd. Kun JSON.`;
+Statistik: acceptrate ${acceptRate}%, gennemsnitsbeløb ${gennemsnit.toLocaleString('da-DK')} kr, ${tilbud.length} tilbud i alt.
+Vær konkret og brug de faktiske tal. Ingen generiske råd. Kun JSON.`;
 
-    const completion = await Promise.race([
-      openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Billigere til analyse
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const message = await Promise.race([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 500,
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: JSON.stringify(oversigt) }
         ],
-        response_format: { type: 'json_object' },
-        max_tokens: 500,
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
     ]);
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    const tekst = message.content[0].text.trim();
+    const jsonMatch = tekst.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Ingen gyldig JSON i svar');
+    const result = JSON.parse(jsonMatch[0]);
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (e) {
-    console.error('ai-vindanalyse fejl:', e);
-    const msg = e.message === 'Timeout' ? 'Analyse tog for lang tid – prøv igen' : 'Fejl ved analyse';
+    console.error('ai-vindanalyse fejl:', e.message);
+    const msg = e.message === 'Timeout' ? 'Analyse tog for lang tid – prøv igen' : 'Fejl ved analyse af tilbud';
     return { statusCode: 500, headers, body: JSON.stringify({ error: msg }) };
   }
 };

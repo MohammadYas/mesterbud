@@ -41,6 +41,7 @@ tailwind.config = {
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="bg-surface-container-low min-h-screen">
 
@@ -338,10 +339,9 @@ function previewApp() {
       const margin = 20;
       let y = margin;
 
-      // Fonts
       doc.setFont('helvetica');
 
-      // Header
+      // ── Header: firma øverst venstre, tilbudsnummer øverst højre ──
       doc.setFontSize(22);
       doc.setTextColor(162, 57, 0);
       doc.text('TILBUD', 210 - margin, y, { align: 'right' });
@@ -366,21 +366,22 @@ function previewApp() {
       if (t.afsender?.cvr) { doc.text('CVR: ' + t.afsender.cvr, margin, y); y += 5; }
 
       y = Math.max(y, 55);
-      y += 8;
+      y += 6;
 
       // Divider
       doc.setDrawColor(225, 191, 179);
+      doc.setLineWidth(0.3);
       doc.line(margin, y, 210 - margin, y);
       y += 8;
 
-      // Modtager
+      // ── Kundeinformation ──
       doc.setFontSize(8);
       doc.setTextColor(89, 65, 56);
-      doc.text('TIL', margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TILBUD TIL', margin, y);
       y += 5;
       doc.setFontSize(11);
       doc.setTextColor(28, 28, 24);
-      doc.setFont('helvetica', 'bold');
       doc.text(t.modtager?.navn || '', margin, y);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
@@ -388,48 +389,64 @@ function previewApp() {
       y += 5;
       if (t.modtager?.virksomhed) { doc.text(t.modtager.virksomhed, margin, y); y += 5; }
       if (t.modtager?.adresse) { doc.text(t.modtager.adresse, margin, y); y += 5; }
-      y += 8;
+      if (t.modtager?.email) { doc.text(t.modtager.email, margin, y); y += 5; }
+      y += 6;
 
-      // Linjer header
-      doc.setFillColor(241, 237, 231);
-      doc.rect(margin, y, 210 - 2 * margin, 7, 'F');
-      doc.setFontSize(8);
-      doc.setTextColor(89, 65, 56);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BESKRIVELSE', margin + 2, y + 5);
-      doc.text('ANTAL', 130, y + 5, { align: 'right' });
-      doc.text('ENHED', 148, y + 5, { align: 'right' });
-      doc.text('PRIS EKS.', 168, y + 5, { align: 'right' });
-      doc.text('BELØB', 210 - margin - 2, y + 5, { align: 'right' });
-      y += 10;
-
-      // Linjer rows
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(28, 28, 24);
-      (t.linjer || []).forEach(l => {
-        const bel = (l.antal || 0) * (l.enhedspris || 0);
+      // ── Opgavebeskrivelse ──
+      if (t.beskrivelse) {
         doc.setFontSize(9);
-        doc.text(l.beskrivelse || '', margin + 2, y);
-        doc.text(String(l.antal || ''), 130, y, { align: 'right' });
-        doc.text(l.enhed || '', 148, y, { align: 'right' });
-        doc.text(this.formatKr(l.enhedspris), 168, y, { align: 'right' });
-        doc.text(this.formatKr(bel), 210 - margin - 2, y, { align: 'right' });
-        doc.setDrawColor(235, 232, 226);
-        doc.line(margin, y + 2, 210 - margin, y + 2);
-        y += 8;
+        doc.setTextColor(89, 65, 56);
+        const linjer = doc.splitTextToSize(t.beskrivelse, 170);
+        doc.text(linjer, margin, y);
+        y += linjer.length * 5 + 4;
+      }
+
+      // ── Linjer tabel med autoTable ──
+      const tableRows = (t.linjer || []).map(l => [
+        l.beskrivelse || '',
+        String(l.antal ?? ''),
+        l.enhed || '',
+        this.formatKr(l.enhedspris),
+        this.formatKr((l.antal || 0) * (l.enhedspris || 0)),
+      ]);
+
+      doc.autoTable({
+        startY: y,
+        margin: { left: margin, right: margin },
+        head: [['Beskrivelse', 'Antal', 'Enhed', 'Pris ekskl.', 'Beløb']],
+        body: tableRows,
+        headStyles: {
+          fillColor: [241, 237, 231],
+          textColor: [89, 65, 56],
+          fontStyle: 'bold',
+          fontSize: 8,
+        },
+        bodyStyles: { fontSize: 9, textColor: [28, 28, 24] },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { halign: 'right', cellWidth: 20 },
+          2: { halign: 'center', cellWidth: 18 },
+          3: { halign: 'right', cellWidth: 28 },
+          4: { halign: 'right', cellWidth: 28 },
+        },
+        alternateRowStyles: { fillColor: [253, 249, 243] },
+        styles: { lineColor: [235, 232, 226], lineWidth: 0.1 },
       });
 
-      y += 6;
-      // Totals
-      const totalsX = 140;
+      y = doc.lastAutoTable.finalY + 8;
+
+      // ── Totaler ──
+      const totalsX = 130;
+      const rCol = 210 - margin - 2;
       doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(89, 65, 56);
       doc.text('Subtotal ekskl. moms', totalsX, y);
-      doc.text(this.formatKr(t.subtotal || 0), 210 - margin - 2, y, { align: 'right' });
+      doc.text(this.formatKr(t.subtotal || 0), rCol, y, { align: 'right' });
       y += 6;
       doc.text('Moms (25%)', totalsX, y);
-      doc.text(this.formatKr(t.moms || 0), 210 - margin - 2, y, { align: 'right' });
-      y += 3;
+      doc.text(this.formatKr(t.momsBeloeb || t.moms || 0), rCol, y, { align: 'right' });
+      y += 4;
       doc.setDrawColor(162, 57, 0);
       doc.setLineWidth(0.5);
       doc.line(totalsX, y, 210 - margin, y);
@@ -438,8 +455,9 @@ function previewApp() {
       doc.setFontSize(12);
       doc.setTextColor(162, 57, 0);
       doc.text('Total inkl. moms', totalsX, y);
-      doc.text(this.formatKr(t.total || 0), 210 - margin - 2, y, { align: 'right' });
+      doc.text(this.formatKr(t.total || 0), rCol, y, { align: 'right' });
 
+      // ── Betalingsbetingelser ──
       y += 14;
       doc.setDrawColor(225, 191, 179);
       doc.setLineWidth(0.3);
@@ -449,14 +467,21 @@ function previewApp() {
       doc.setFontSize(8);
       doc.setTextColor(89, 65, 56);
       doc.text('Betalingsbetingelser: ' + this.betalingLabel(t.betalingsbetingelser), margin, y);
-      if (t.note) { y += 5; doc.text(t.note, margin, y); }
+      if (t.note) {
+        y += 5;
+        const noteLinjer = doc.splitTextToSize(t.note, 170);
+        doc.text(noteLinjer, margin, y);
+      }
 
-      // Footer
+      // ── Footer ──
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
-      doc.text('Oprettet med Mesterbud · mesterbud.dk', 210 / 2, 287, { align: 'center' });
+      doc.text('Oprettet med Mesterbud.dk', 210 / 2, 287, { align: 'center' });
 
-      doc.save((t.id || 'tilbud') + '.pdf');
+      // ── Filnavn: Tilbud-{tilbudsNummer}-{kundeNavn}.pdf ──
+      const kundeNavn = (t.modtager?.navn || 'kunde').replace(/[^a-zA-Z0-9æøåÆØÅ _-]/g, '').trim().replace(/\s+/g, '-');
+      const filnavn = `Tilbud-${t.id || 'MB'}-${kundeNavn}.pdf`;
+      doc.save(filnavn);
     },
 
     formatKr(v) { return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v || 0); },

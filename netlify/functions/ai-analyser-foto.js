@@ -1,11 +1,10 @@
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse,
   validateSchema, parseBody, CORS_HEADERS,
 } = require('./_security');
 
-// Daglig AI-kvote pr. bruger – vision er dyrere, lavere grænse
 const DAGLIG_AI_KVOTE = 20;
 
 const SYSTEM_PROMPT = `Du er ekspert i danske håndværkerpriser. Analyser dette billede af en opgave og returner KUN valid JSON:
@@ -21,11 +20,9 @@ const SYSTEM_PROMPT = `Du er ekspert i danske håndværkerpriser. Analyser dette
   "opgavebeskrivelse": "string",
   "noter": "string (eventuelle forbehold baseret på billedet – tom streng hvis ingen)"
 }
-Brug realistiske danske markedspriser for 2026. Ingen forklaring, kun JSON.`;
+Brug realistiske danske markedspriser for 2025. Ingen forklaring, kun JSON.`;
 
-// Godkendte billedformater
 const GYLDIGE_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-// Maks. base64-størrelse (~10 MB billede)
 const MAX_BASE64_LEN = 14_000_000;
 
 async function checkOgInkrementerKvote(store, userId) {
@@ -51,7 +48,6 @@ exports.handler = async (event, context) => {
   const { user } = context.clientContext || {};
   if (!user) return { statusCode: 401, headers, body: JSON.stringify({ error: 'Ikke autoriseret' }) };
 
-  // In-memory burst: maks. 3 foto-AI/min pr. bruger
   const rl = checkRateLimit(`ai-foto:${user.sub}`, 3, 60_000);
   if (rl.limited) return rateLimitResponse(rl.retryAfter);
 
@@ -62,13 +58,12 @@ exports.handler = async (event, context) => {
     const raw = await store.get(`profil/${user.sub}`);
     const profil = raw ? JSON.parse(raw) : {};
     if (profil.plan !== 'pro') {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: 'pro_required', message: 'Denne funktion kræver Pro-abonnement' }) };
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Kræver Pro-abonnement', kræverPro: true }) };
     }
   } catch {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Kunne ikke verificere abonnement' }) };
   }
 
-  // Daglig kvote (vision er dyrt)
   const tilladt = await checkOgInkrementerKvote(store, user.sub);
   if (!tilladt) {
     return {
@@ -81,41 +76,53 @@ exports.handler = async (event, context) => {
   const body = parseBody(event);
   if (!body) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ugyldig JSON' }) };
 
-  const { valid, errors, data } = validateSchema(body, {
-    base64:   { type: 'string', required: true, maxLen: MAX_BASE64_LEN },
+  // Understøt både 'billede' (spec) og 'base64' (baglæns kompatibilitet)
+  const billedeData = body.billede || body.base64 || '';
+  const { valid, errors, data } = validateSchema({
+    billede:  billedeData,
+    mimeType: body.mimeType,
+  }, {
+    billede:  { type: 'string', required: true, maxLen: MAX_BASE64_LEN },
     mimeType: { type: 'string', maxLen: 30 },
   });
   if (!valid) return { statusCode: 400, headers, body: JSON.stringify({ error: errors.join(', ') }) };
 
-  // Valider mimeType
   const mime = GYLDIGE_MIME.includes(data.mimeType) ? data.mimeType : 'image/jpeg';
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const dataUrl = `data:${mime};base64,${data.base64}`;
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
-    const completion = await Promise.race([
-      openai.chat.completions.create({
-        model: 'gpt-4o',
+    const message = await Promise.race([
+      anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2000,
         messages: [
           {
             role: 'user',
             content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mime,
+                  data: data.billede,
+                },
+              },
               { type: 'text', text: SYSTEM_PROMPT },
-              { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } }
-            ]
+            ],
           }
         ],
-        response_format: { type: 'json_object' },
-        max_tokens: 2000,
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
     ]);
 
-    const result = JSON.parse(completion.choices[0].message.content);
+    const tekst = message.content[0].text.trim();
+    const jsonMatch = tekst.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Ingen gyldig JSON i svar');
+    const result = JSON.parse(jsonMatch[0]);
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (e) {
-    console.error('ai-analyser-foto fejl:', e);
+    console.error('ai-analyser-foto fejl:', e.message);
     const msg = e.message === 'Timeout' ? 'AI-billedanalyse tog for lang tid – prøv igen' : 'Fejl ved billedanalyse';
     return { statusCode: 500, headers, body: JSON.stringify({ error: msg }) };
   }
