@@ -160,7 +160,7 @@ tailwind.config = {
     </div>
 
     <!-- Loading skeleton -->
-    <div x-show="loading" x-cloak class="p-6 md:p-8 space-y-8">
+    <div x-show="loading" x-cloak class="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <template x-for="i in 3" :key="i">
           <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm animate-pulse">
@@ -184,7 +184,7 @@ tailwind.config = {
     </div>
 
     <!-- OVERSIGT VIEW -->
-    <div x-show="!loading && currentView === 'oversigt'" x-cloak class="p-6 md:p-8 space-y-8">
+    <div x-show="!loading && currentView === 'oversigt'" x-cloak class="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
 
       <!-- Abonnements-statusboks -->
       <div x-show="abonnementKlar" x-cloak>
@@ -198,7 +198,7 @@ tailwind.config = {
               <p class="text-xs text-on-surface-variant" x-show="dageTilbage === null && userPlan === 'basis'" x-text="'Tilbud denne måned: ' + metrics.denneMaaned + '/10'"></p>
             </div>
           </div>
-          <a href="/signup.html?checkout=pro"
+          <a href="/konto.html"
             class="flex-shrink-0 flex items-center gap-1.5 bg-gradient-to-br from-primary to-primary-container text-on-primary px-4 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all shadow-sm shadow-primary/20">
             <span class="material-symbols-outlined text-base">upgrade</span>
             Opgrader til Pro
@@ -223,22 +223,22 @@ tailwind.config = {
       </div>
 
       <!-- Metric cards -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Tilbud denne måned</p>
-          <p class="text-3xl font-bold" style="font-family: Newsreader, serif" x-text="metrics.denneMaaned"></p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 sm:mb-3">Denne måned</p>
+          <p class="text-2xl sm:text-3xl font-bold" style="font-family: Newsreader, serif" x-text="metrics.denneMaaned"></p>
         </div>
-        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Accepterede</p>
-          <p class="text-3xl font-bold text-green-700" style="font-family: Newsreader, serif" x-text="metrics.accepterede"></p>
+        <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 sm:mb-3">Accepterede</p>
+          <p class="text-2xl sm:text-3xl font-bold text-green-700" style="font-family: Newsreader, serif" x-text="metrics.accepterede"></p>
         </div>
-        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Afventer svar</p>
-          <p class="text-3xl font-bold text-tertiary" style="font-family: Newsreader, serif" x-text="metrics.afventende"></p>
+        <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 sm:mb-3">Afventer</p>
+          <p class="text-2xl sm:text-3xl font-bold text-tertiary" style="font-family: Newsreader, serif" x-text="metrics.afventende"></p>
         </div>
-        <div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/20 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Acceptrate</p>
-          <p class="text-3xl font-bold text-primary" style="font-family: Newsreader, serif" x-text="metrics.acceptrate + '%'"></p>
+        <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-6 border border-outline-variant/20 shadow-sm">
+          <p class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 sm:mb-3">Acceptrate</p>
+          <p class="text-2xl sm:text-3xl font-bold text-primary" style="font-family: Newsreader, serif" x-text="metrics.acceptrate + '%'"></p>
         </div>
       </div>
 
@@ -353,7 +353,7 @@ tailwind.config = {
     </div>
 
     <!-- TILBUD LIST VIEW -->
-    <div x-show="!loading && currentView === 'tilbud'" x-cloak class="p-6 md:p-8 space-y-6">
+    <div x-show="!loading && currentView === 'tilbud'" x-cloak class="p-4 sm:p-6 md:p-8 space-y-6">
 
       <!-- Filters + Search -->
       <div class="flex flex-col sm:flex-row gap-4">
@@ -438,7 +438,7 @@ tailwind.config = {
     </div>
 
     <!-- FAKTURAER VIEW -->
-    <div x-show="!loading && currentView === 'fakturaer'" x-cloak class="p-6 md:p-8 space-y-6">
+    <div x-show="!loading && currentView === 'fakturaer'" x-cloak class="p-4 sm:p-6 md:p-8 space-y-6">
 
       <!-- Filters -->
       <div class="flex flex-col sm:flex-row gap-4">

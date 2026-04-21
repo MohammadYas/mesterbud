@@ -104,12 +104,12 @@ Vær konkret og brug de faktiske tal. Ingen generiske råd. Kun JSON.`;
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'o4-mini',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify(oversigt) },
           ],
-          max_completion_tokens: 2000,
+          max_tokens: 2000,
         }),
       }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000)),

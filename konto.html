@@ -232,6 +232,7 @@ tailwind.config = {
             <span class="material-symbols-outlined text-base">check_circle</span>
             Indstillinger gemt
           </p>
+          <p x-show="fejl" x-cloak class="text-sm text-error flex items-center gap-1" x-text="fejl"></p>
           <div class="ml-auto">
             <button @click="gem()" :disabled="gemmer"
               class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
@@ -546,8 +547,12 @@ function kontoApp() {
         if (res.ok) {
           this.gemtVirksomhed = true;
           setTimeout(() => { this.gemtVirksomhed = false; }, 3000);
+        } else {
+          const d = await res.json().catch(() => ({}));
+          if (res.status === 401) this.visToast('Session udløbet – log ud og ind igen', 'error');
+          else this.visToast(d.error || 'Fejl ved gemning – prøv igen', 'error');
         }
-      } catch(e) { this.visToast('Fejl ved gemning', 'error'); }
+      } catch(e) { this.visToast('Netværksfejl – tjek din forbindelse', 'error'); }
       this.gemmerVirksomhed = false;
     },
 
@@ -624,6 +629,7 @@ function indstillingerApp() {
     ind: { timepris: 625, avance: 15, betalingsbetingelse: 'netto14', gyldigDage: 30 },
     gemmer: false,
     gemt: false,
+    fejl: '',
 
     async init() {
       try {
@@ -638,6 +644,7 @@ function indstillingerApp() {
 
     async gem() {
       this.gemmer = true;
+      this.fejl = '';
       try {
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch('/api/save-user', {
@@ -648,8 +655,15 @@ function indstillingerApp() {
         if (res.ok) {
           this.gemt = true;
           setTimeout(() => { this.gemt = false; }, 3000);
+        } else {
+          const d = await res.json().catch(() => ({}));
+          this.fejl = res.status === 401 ? 'Session udløbet – log ud og ind igen' : (d.error || 'Fejl ved gemning – prøv igen');
+          setTimeout(() => { this.fejl = ''; }, 4000);
         }
-      } catch(e) {}
+      } catch(e) {
+        this.fejl = 'Netværksfejl – tjek din forbindelse';
+        setTimeout(() => { this.fejl = ''; }, 4000);
+      }
       this.gemmer = false;
     },
   };
