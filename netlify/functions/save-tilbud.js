@@ -80,6 +80,40 @@ exports.handler = async (event, context) => {
     const momsBeloeb = top.moms ? subtotal * 0.25 : 0;
     const total = subtotal + momsBeloeb;
 
+    // ── Plankvote: Basis = maks. 10 tilbud/måned, Pro = ubegrænset ──
+    const erNyt = !top.id;
+    if (erNyt) {
+      // Hent plan fra profil
+      let plan = 'basis';
+      try {
+        const profilRaw = await store.get(`profil/${userId}`);
+        if (profilRaw) plan = (JSON.parse(profilRaw).plan || 'basis');
+      } catch {}
+
+      if (plan !== 'pro') {
+        const maaned = new Date().toISOString().slice(0, 7); // YYYY-MM
+        const kvoteKey = `meta/${userId}/tilbud-maaned/${maaned}`;
+        let maanedCount = 0;
+        try {
+          const raw = await store.get(kvoteKey);
+          maanedCount = raw ? parseInt(raw, 10) : 0;
+        } catch {}
+
+        if (maanedCount >= 10) {
+          return {
+            statusCode: 429,
+            headers,
+            body: JSON.stringify({
+              error: 'Du har nået grænsen på 10 tilbud denne måned. Opgrader til Pro for ubegrænsede tilbud.',
+              kvote: { grænse: 10, brugt: maanedCount, kræverPro: true },
+            }),
+          };
+        }
+        // Increment månedstæller
+        await store.set(kvoteKey, String(maanedCount + 1));
+      }
+    }
+
     // Auto-generer tilbudsnummer hvis nyt
     let tilbudsId = top.id;
     if (!tilbudsId) {

@@ -35,7 +35,22 @@ exports.handler = async (event, context) => {
         .filter(Boolean)
         .sort((a, b) => new Date(b.opdateret || 0) - new Date(a.opdateret || 0));
 
-      return { statusCode: 200, headers, body: JSON.stringify(tilbud) };
+      // Kvote-info til dashboard
+      let kvote = null;
+      try {
+        const profilRaw = await store.get(`profil/${userId}`);
+        const plan = profilRaw ? (JSON.parse(profilRaw).plan || 'basis') : 'basis';
+        if (plan !== 'pro') {
+          const maaned = new Date().toISOString().slice(0, 7);
+          const raw = await store.get(`meta/${userId}/tilbud-maaned/${maaned}`);
+          const brugt = raw ? parseInt(raw, 10) : 0;
+          kvote = { plan: 'basis', grænse: 10, brugt, resterende: Math.max(0, 10 - brugt) };
+        } else {
+          kvote = { plan: 'pro', grænse: null, brugt: null, resterende: null };
+        }
+      } catch {}
+
+      return { statusCode: 200, headers, body: JSON.stringify({ tilbud, kvote }) };
     }
   } catch (e) {
     console.error('get-tilbud fejl:', e);
