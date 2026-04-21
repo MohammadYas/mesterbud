@@ -62,6 +62,14 @@ tailwind.config = {
       border-radius: 0;
       padding: 0;
     }
+    /* Gør inner mobil-wrapper transparent i grid-kontekst */
+    .linjer-inner {
+      display: contents;
+    }
+    /* Skjul mobil-subtotal i grid */
+    .linjer-subtotal {
+      display: none;
+    }
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
@@ -546,7 +554,7 @@ tailwind.config = {
                 <input x-model="linje.beskrivelse" type="text" placeholder="Beskrivelse" class="field-input"/>
               </div>
               <!-- Antal + Enhed + Pris: row on mobile, individual grid items on desktop -->
-              <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 lg:contents">
+              <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 linjer-inner">
                 <!-- Antal -->
                 <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Antal</label>
@@ -579,7 +587,7 @@ tailwind.config = {
                 </div>
               </div>
               <!-- Subtotal per linje (mobile only) -->
-              <div class="mt-1.5 text-right text-xs text-on-surface-variant lg:hidden" x-show="linje.antal && linje.enhedspris">
+              <div class="mt-1.5 text-right text-xs text-on-surface-variant linjer-subtotal" x-show="linje.antal && linje.enhedspris">
                 <span x-text="'= ' + formatKr(linje.antal * linje.enhedspris)"></span>
               </div>
             </div>
