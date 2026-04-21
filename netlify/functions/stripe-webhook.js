@@ -37,12 +37,17 @@ exports.handler = async (event) => {
         profil.plan = plan;
         profil.stripeCustomerId = session.customer;
         profil.stripeSubscriptionId = session.subscription;
+        profil.stripeStatus = 'active';
         profil.planOpdateret = new Date().toISOString();
 
-        // Hent næste betalingsdato fra subscription
+        // Hent trial-slut + næste betaling fra subscription
         if (session.subscription) {
           try {
             const sub = await stripe.subscriptions.retrieve(session.subscription);
+            if (sub.trial_end) {
+              profil.trialSlutter = new Date(sub.trial_end * 1000).toISOString();
+              profil.plan = plan; // behold plan under trial
+            }
             profil.naesteBetaling = new Date(sub.current_period_end * 1000)
               .toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
           } catch (e) {}

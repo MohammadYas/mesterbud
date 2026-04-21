@@ -18,16 +18,12 @@ exports.handler = async (event, context) => {
 
   try {
     const raw = await store.get(`profil/${userId}`);
-    const profil = raw ? JSON.parse(raw) : { plan: 'trial', virksomhed: {} };
+    // Nye brugere får plan: 'none' – trial starter FØRST når Stripe checkout er gennemført
+    const profil = raw ? JSON.parse(raw) : { plan: 'none', virksomhed: {} };
 
-    // Tjek om trial er udløbet (14 dage)
-    if (profil.plan === 'trial' && profil.oprettet) {
-      const dage = (Date.now() - new Date(profil.oprettet).getTime()) / 86_400_000;
-      if (dage > 14) profil.plan = 'none';
-    } else if (!profil.oprettet) {
-      profil.oprettet = new Date().toISOString();
-      profil.plan = 'trial';
-      await store.set(`profil/${userId}`, JSON.stringify(profil));
+    // Tjek om Stripe trial er udløbet
+    if (profil.trialSlutter && profil.plan === 'trial') {
+      if (new Date(profil.trialSlutter) < new Date()) profil.plan = 'none';
     }
 
     // Beregn dage tilbage af prøveperiode
