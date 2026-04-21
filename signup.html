@@ -298,6 +298,32 @@ function signupApp() {
             })
           });
 
+          // Overfør gæste-tilbud hvis det findes
+          try {
+            const gaestRaw = localStorage.getItem('mesterbud_gæste_tilbud');
+            if (gaestRaw) {
+              const gaest = JSON.parse(gaestRaw);
+              if (gaest && gaest.tilbud) {
+                const payload = {
+                  ...gaest.tilbud,
+                  status: 'kladde',
+                  subtotal: gaest.tilbud.linjer.reduce((s, l) => s + (l.antal||0)*(l.enhedspris||0), 0),
+                };
+                await fetch('/api/save-tilbud', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': 'Bearer ' + loginData.access_token,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(payload)
+                });
+                localStorage.removeItem('mesterbud_gæste_tilbud');
+                // Flag til dashboard: vis "dit prøvetilbud er gemt"
+                sessionStorage.setItem('gaest_tilbud_overfoert', '1');
+              }
+            }
+          } catch(e) { /* stil fejl – ikke kritisk */ }
+
           this.success = true;
         } else {
           // Email-bekræftelse kræves

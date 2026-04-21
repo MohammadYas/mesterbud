@@ -167,18 +167,20 @@ tailwind.config = {
           <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
           Tilbudsdetaljer
         </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div class="grid grid-cols-1 gap-4 mb-4">
           <div>
             <label class="field-label">Tilbudsnummer</label>
             <input x-model="tilbud.id" type="text" readonly class="field-input bg-surface-container cursor-not-allowed text-on-surface-variant"/>
           </div>
-          <div>
-            <label class="field-label">Dato</label>
-            <input x-model="tilbud.dato" type="date" class="field-input"/>
-          </div>
-          <div>
-            <label class="field-label">Gyldig til</label>
-            <input x-model="tilbud.gyldigTil" type="date" class="field-input"/>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Dato</label>
+              <input x-model="tilbud.dato" type="date" class="field-input"/>
+            </div>
+            <div>
+              <label class="field-label">Gyldig til</label>
+              <input x-model="tilbud.gyldigTil" type="date" class="field-input"/>
+            </div>
           </div>
         </div>
         <div>
