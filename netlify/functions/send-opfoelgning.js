@@ -60,7 +60,7 @@ exports.handler = async (event, context) => {
     return { statusCode: 429, headers, body: JSON.stringify({ error: `Daglig mailgrænse på ${DAGLIG_MAIL_KVOTE} nået. Prøv igen i morgen.` }) };
   }
 
-  const previewUrl = `${process.env.URL || 'https://mesterbud.dk'}/tilbud-preview.html?id=${data.tilbudsId}`;
+  const previewUrl = `${process.env.SITE_URL || process.env.URL || 'https://mesterbud.dk'}/tilbud-preview.html?id=${data.tilbudsId}`;
   const kundenavn = data.kundenavn || 'kunde';
   const firma = sanitizeString(data.afsenderFirma, 150);
 

@@ -38,7 +38,7 @@ exports.handler = async (event, context) => {
   const priceId = priceMap[data.plan];
   if (!priceId) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Pris ikke konfigureret' }) };
 
-  const baseUrl = process.env.URL || 'https://mesterbud.dk';
+  const baseUrl = process.env.SITE_URL || process.env.URL || 'https://mesterbud.dk';
 
   try {
     const session = await stripe.checkout.sessions.create({

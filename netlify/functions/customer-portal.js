@@ -26,7 +26,7 @@ exports.handler = async (event, context) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ingen aktiv Stripe-kunde fundet' }) };
     }
 
-    const baseUrl = process.env.URL || 'https://mesterbud.dk';
+    const baseUrl = process.env.SITE_URL || process.env.URL || 'https://mesterbud.dk';
 
     const session = await stripe.billingPortal.sessions.create({
       customer: profil.stripeCustomerId,
