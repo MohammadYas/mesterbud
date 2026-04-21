@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html class="light" lang="da">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ny faktura – Mesterbud</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#a23900">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: { extend: {
+    colors: {
+      "primary": "#a23900", "primary-container": "#cb4a01", "on-primary": "#ffffff",
+      "surface": "#fdf9f3", "surface-container-lowest": "#ffffff",
+      "surface-container-low": "#f7f3ed", "surface-container": "#f1ede7",
+      "surface-container-high": "#ebe8e2", "surface-container-highest": "#e6e2dc",
+      "on-surface": "#1c1c18", "on-surface-variant": "#594138",
+      "outline": "#8d7167", "outline-variant": "#e1bfb3",
+      "error": "#ba1a1a", "error-container": "#ffdad6", "on-error-container": "#93000a",
+    },
+    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+    fontFamily: { "headline": ["Newsreader","serif"], "body": ["Plus Jakarta Sans","sans-serif"] }
+  }}
+}
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  h1, h2, h3 { font-family: 'Newsreader', serif; }
+  [x-cloak] { display: none !important; }
+  .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
+  .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
+  .field-textarea { @apply w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-surface-container-low">
+
+<script>
+(function() {
+  const s = localStorage.getItem('gotrue-session');
+  if (!s) { window.location.href = '/login.html'; return; }
+  try {
+    const t = JSON.parse(s);
+    const p = JSON.parse(atob(t.access_token.split('.')[1]));
+    if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+  } catch(e) { window.location.href = '/login.html'; }
+})();
+</script>
+
+<div x-data="fakturaApp()" x-init="init()" class="min-h-screen">
+
+  <!-- Top bar -->
+  <header class="h-14 bg-surface-container-lowest border-b border-outline-variant flex items-center px-4 md:px-6 gap-4 sticky top-0 z-20 shadow-sm">
+    <a href="/dashboard.html" class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors">
+      <span class="material-symbols-outlined text-xl">arrow_back</span>
+      <span class="text-sm font-medium hidden sm:inline">Tilbage</span>
+    </a>
+    <div class="flex items-center gap-2 mr-auto">
+      <span class="material-symbols-outlined text-primary text-xl hidden sm:inline">receipt</span>
+      <span class="font-bold hidden sm:inline" style="font-family: Newsreader, serif">Mesterbud</span>
+      <span class="text-on-surface-variant hidden sm:inline">/</span>
+      <span class="text-sm font-medium text-on-surface-variant" x-text="faktura.id ? faktura.id : (konverteretFra ? 'Ny faktura fra ' + konverteretFra : 'Ny faktura')"></span>
+    </div>
+    <span x-show="autoSaved" x-cloak class="text-xs text-on-surface-variant flex items-center gap-1">
+      <span class="material-symbols-outlined text-sm">cloud_done</span>
+      Gemt
+    </span>
+    <div class="flex items-center gap-2">
+      <button @click="gem('kladde')" :disabled="saving"
+        class="px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm font-medium hover:bg-surface-container transition-colors active:scale-95 disabled:opacity-60">
+        Gem kladde
+      </button>
+      <button @click="sendFaktura()" :disabled="saving"
+        class="px-4 py-2 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary text-sm font-bold active:scale-95 transition-all shadow-md shadow-primary/20 disabled:opacity-60 flex items-center gap-1.5">
+        <span x-show="saving" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+        <span class="material-symbols-outlined text-sm" x-show="!saving">send</span>
+        Send faktura
+      </button>
+    </div>
+  </header>
+
+  <!-- RYKKER MODAL -->
+  <div x-show="rykkerModal" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div class="bg-surface-container-lowest rounded-xl shadow-2xl w-full max-w-lg border border-outline-variant/20">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+        <h2 class="font-bold text-lg">Send rykker</h2>
+        <button @click="rykkerModal = false" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-container">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div x-show="rykkerLoading" class="flex flex-col items-center py-6 gap-3">
+          <span class="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
+          <p class="text-sm text-on-surface-variant">AI genererer rykkertekst...</p>
+        </div>
+        <div x-show="!rykkerLoading">
+          <div x-show="rykkerNyFrist" class="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-600 text-base">schedule</span>
+            Ny betalingsfrist foreslås: <strong x-text="rykkerNyFrist"></strong>
+          </div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Rykkertekst</label>
+          <textarea x-model="rykkerTekst" rows="6" class="field-textarea w-full"></textarea>
+          <p class="text-xs text-on-surface-variant mt-1">Du kan redigere teksten inden afsendelse.</p>
+        </div>
+        <div x-show="rykkerFejl" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm" x-text="rykkerFejl"></div>
+      </div>
+      <div class="px-6 pb-6 flex gap-3" x-show="!rykkerLoading">
+        <button @click="rykkerModal = false" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95">Annuller</button>
+        <button @click="sendRykker()" :disabled="sendingRykker || !rykkerTekst"
+          class="flex-1 py-3 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+          <span x-show="sendingRykker" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+          Send rykker
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
+
+    <!-- LEFT: Form -->
+    <div class="flex-1 overflow-auto p-4 md:p-6 space-y-6 lg:max-w-2xl">
+
+      <!-- Konverteret fra tilbud banner -->
+      <div x-show="konverteretFra" x-cloak class="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
+        <span class="material-symbols-outlined text-primary text-xl">link</span>
+        <div>
+          <p class="font-bold text-sm">Konverteret fra tilbud</p>
+          <p class="text-xs text-on-surface-variant" x-text="'Tilbuddets linjer og kundeoplysninger er overført fra ' + konverteretFra + '.'"></p>
+        </div>
+      </div>
+
+      <!-- Afsender -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">business</span>
+          Din virksomhed
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">Firmanavn</label>
+            <input x-model="faktura.afsender.firmanavn" type="text" placeholder="Mesterbyg ApS" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Adresse</label>
+            <input x-model="faktura.afsender.adresse" list="dawa-afs" type="text"
+              placeholder="Bygmestervej 12, 2400 København NV" class="field-input"
+              @input="hentDawa('afs', $event.target.value)"/>
+            <datalist id="dawa-afs">
+              <template x-for="f in dawaAfs" :key="f.tekst"><option :value="f.tekst"></option></template>
+            </datalist>
+          </div>
+          <div>
+            <label class="field-label">CVR-nummer</label>
+            <input x-model="faktura.afsender.cvr" type="text" placeholder="12345678" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="faktura.afsender.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">E-mail</label>
+            <input x-model="faktura.afsender.email" type="email" placeholder="kontakt@mesterbyg.dk" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2 pt-2 border-t border-outline-variant/20">
+            <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Betalingsoplysninger</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="field-label">Reg.nr.</label>
+                <input x-model="faktura.afsender.regNr" type="text" placeholder="1234" maxlength="4" class="field-input"/>
+              </div>
+              <div>
+                <label class="field-label">Kontonummer</label>
+                <input x-model="faktura.afsender.kontoNr" type="text" placeholder="12345678" maxlength="10" class="field-input"/>
+              </div>
+              <div>
+                <label class="field-label">MobilePay (valgfrit)</label>
+                <input x-model="faktura.afsender.mobilePay" type="text" placeholder="12 34 56" maxlength="12" class="field-input"/>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modtager -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm"
+        x-data="{
+          visDetaljer: false,
+          cvrLoader: false,
+          cvrFejl: '',
+          async hentCVR() {
+            const cvr = ($root.faktura.modtager.cvr || '').replace(/\s/g, '');
+            if (!/^\d{8}$/.test(cvr)) { this.cvrFejl = 'CVR skal være 8 cifre'; return; }
+            this.cvrLoader = true; this.cvrFejl = '';
+            try {
+              const res = await fetch('/api/hent-cvr?cvr=' + cvr);
+              const d = await res.json();
+              if (d.fejl) { this.cvrFejl = d.fejl; }
+              else {
+                if (d.navn) $root.faktura.modtager.navn = d.navn;
+                if (d.adresse || d.postnr || d.by) $root.faktura.modtager.adresse = [d.adresse, d.postnr, d.by].filter(Boolean).join(', ');
+                if (d.telefon) $root.faktura.modtager.telefon = d.telefon;
+                if (d.email) $root.faktura.modtager.email = d.email;
+                this.visDetaljer = true;
+              }
+            } catch(e) { this.cvrFejl = 'CVR-opslag fejlede'; }
+            this.cvrLoader = false;
+          }
+        }">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">domain</span>
+          Faktureres til (kunde)
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">Virksomhedsnavn <span class="text-error">*</span></label>
+            <input x-model="faktura.modtager.navn" type="text" placeholder="Andersen Byg A/S" class="field-input" required/>
+          </div>
+          <div>
+            <label class="field-label">Kontaktperson <span class="text-error">*</span></label>
+            <input x-model="faktura.modtager.kontaktperson" type="text" placeholder="Morten Andersen" class="field-input" required/>
+          </div>
+          <div>
+            <label class="field-label">E-mail <span class="text-error">*</span></label>
+            <input x-model="faktura.modtager.email" type="email" placeholder="morten@andersen.dk" class="field-input" required/>
+          </div>
+        </div>
+
+        <button @click="visDetaljer = !visDetaljer"
+          class="flex items-center gap-1.5 text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors mb-3">
+          <span class="material-symbols-outlined text-base" x-text="visDetaljer ? 'expand_less' : 'expand_more'"></span>
+          <span x-text="visDetaljer ? 'Skjul detaljer' : 'Tilføj virksomhedsdetaljer'"></span>
+        </button>
+
+        <div x-show="visDetaljer" x-transition class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">CVR-nummer</label>
+            <div class="flex gap-2">
+              <input x-model="faktura.modtager.cvr" type="text" placeholder="12345678" maxlength="8" class="field-input" @keydown.enter.prevent="hentCVR()"/>
+              <button @click="hentCVR()" :disabled="cvrLoader || !faktura.modtager.cvr"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container border border-outline-variant text-sm font-bold hover:bg-surface-container-high transition-colors active:scale-95 disabled:opacity-50 whitespace-nowrap">
+                <span x-show="cvrLoader" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                <span x-show="!cvrLoader">Hent →</span>
+              </button>
+            </div>
+            <p x-show="cvrFejl" x-cloak class="text-xs text-error mt-1" x-text="cvrFejl"></p>
+          </div>
+          <div>
+            <label class="field-label">Stilling</label>
+            <input x-model="faktura.modtager.stilling" type="text" placeholder="Projektleder" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="faktura.modtager.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="field-label">Adresse</label>
+            <input x-model="faktura.modtager.adresse" list="dawa-mod" type="text"
+              placeholder="Byggervej 12, 2100 København Ø" class="field-input"
+              @input="hentDawa('mod', $event.target.value)"/>
+            <datalist id="dawa-mod">
+              <template x-for="f in dawaMod" :key="f.tekst"><option :value="f.tekst"></option></template>
+            </datalist>
+          </div>
+          <div>
+            <label class="field-label">EAN-nummer (offentlige kunder)</label>
+            <input x-model="faktura.modtager.ean" type="text" placeholder="5790000000000" maxlength="20" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Projektreference / sagsnummer</label>
+            <input x-model="faktura.modtager.reference" type="text" placeholder="SAG-2025-042" class="field-input"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fakturadetaljer -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
+          Fakturadetaljer
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="field-label">Fakturanummer</label>
+            <div class="relative">
+              <input x-model="faktura.id" type="text" class="field-input pr-8" placeholder="Auto-genereres"/>
+              <button x-show="faktura.id" type="button" @click="faktura.id = ''" title="Nulstil til auto"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-1">Tomt = auto (MB-F-2025-001)</p>
+          </div>
+          <div>
+            <label class="field-label">Fakturadato</label>
+            <input x-model="faktura.fakturadato" type="date" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Forfaldsdato</label>
+            <input x-model="faktura.forfaldsdato" type="date" class="field-input"/>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Betalingsbetingelse</label>
+            <select x-model="faktura.betalingsbetingelse" @change="opdaterForfald()" class="field-input">
+              <option value="netto8">Netto 8 dage</option>
+              <option value="netto14">Netto 14 dage</option>
+              <option value="netto30">Netto 30 dage</option>
+              <option value="straks">Betales straks</option>
+            </select>
+          </div>
+          <div x-show="konverteretFra">
+            <label class="field-label">Konverteret fra tilbud</label>
+            <input type="text" :value="konverteretFra" readonly class="field-input bg-surface-container cursor-not-allowed text-on-surface-variant"/>
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="field-label">Beskrivelse / overskrift (valgfrit)</label>
+          <input x-model="faktura.beskrivelse" type="text" placeholder="F.eks. VVS-arbejde på Strandvejen 4" class="field-input"/>
+        </div>
+      </section>
+
+      <!-- Linjer -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">table_rows</span>
+          Faktura-linjer
+        </h2>
+
+        <!-- Column headers -->
+        <div class="hidden sm:grid grid-cols-12 gap-2 mb-2 px-1">
+          <div class="col-span-5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Antal</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Enhed</div>
+          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
+          <div class="col-span-1"></div>
+        </div>
+
+        <div class="space-y-2">
+          <template x-for="(linje, i) in faktura.linjer" :key="i">
+            <div class="grid grid-cols-12 gap-2 items-center">
+              <div class="col-span-12 sm:col-span-5">
+                <input x-model="linje.beskrivelse" type="text" placeholder="Beskrivelse" class="field-input"/>
+              </div>
+              <div class="col-span-4 sm:col-span-2">
+                <input x-model.number="linje.antal" type="number" min="0" step="0.01" placeholder="1" class="field-input text-center"/>
+              </div>
+              <div class="col-span-4 sm:col-span-2">
+                <select x-model="linje.enhed" class="field-input text-center">
+                  <option value="stk">stk</option>
+                  <option value="time">time</option>
+                  <option value="m²">m²</option>
+                  <option value="m">m</option>
+                  <option value="m³">m³</option>
+                  <option value="dag">dag</option>
+                  <option value="sæt">sæt</option>
+                  <option value="ls">ls</option>
+                </select>
+              </div>
+              <div class="col-span-3 sm:col-span-2">
+                <input x-model.number="linje.enhedspris" type="number" min="0" step="0.01" placeholder="0,00" class="field-input text-right"/>
+              </div>
+              <div class="col-span-1 flex items-center justify-center">
+                <button @click="fjernLinje(i)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors">
+                  <span class="material-symbols-outlined text-base">remove_circle</span>
+                </button>
+              </div>
+              <div class="col-span-12 sm:hidden text-right text-xs text-on-surface-variant px-1" x-show="linje.antal && linje.enhedspris">
+                = <span x-text="formatKr(linje.antal * linje.enhedspris)"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <button @click="tilfoejLinje()"
+          class="mt-4 flex items-center gap-2 text-primary font-bold text-sm hover:bg-primary/5 px-3 py-2 rounded-lg transition-colors active:scale-95">
+          <span class="material-symbols-outlined text-base">add_circle</span>
+          Tilføj linje
+        </button>
+
+        <!-- Totaler -->
+        <div class="mt-6 pt-6 border-t-2 border-outline-variant/30 space-y-3">
+          <div class="flex justify-between text-sm">
+            <span class="text-on-surface-variant">Subtotal ekskl. moms</span>
+            <span class="font-medium" x-text="formatKr(subtotal)"></span>
+          </div>
+
+          <!-- Acontobetaling -->
+          <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-on-surface-variant">Acontobetaling (valgfrit)</span>
+              <button @click="visAconto = !visAconto" class="text-xs text-primary font-bold hover:underline">
+                <span x-text="visAconto ? 'Fjern' : 'Tilføj'"></span>
+              </button>
+            </div>
+            <div x-show="visAconto" class="flex items-center gap-2">
+              <span class="text-on-surface-variant">−</span>
+              <input x-model.number="faktura.aconto" type="number" min="0" :max="subtotal" step="0.01"
+                class="w-28 h-8 bg-surface-container-low border border-outline-variant rounded-lg px-2 text-sm text-right focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"/>
+            </div>
+            <span x-show="!visAconto && faktura.aconto > 0" class="font-medium text-error" x-text="'− ' + formatKr(faktura.aconto)"></span>
+          </div>
+
+          <div x-show="faktura.aconto > 0" class="flex justify-between text-sm">
+            <span class="text-on-surface-variant">Beregningsgrundlag (efter aconto)</span>
+            <span class="font-medium" x-text="formatKr(Math.max(0, subtotal - faktura.aconto))"></span>
+          </div>
+
+          <div class="flex justify-between text-sm">
+            <span class="text-on-surface-variant">Moms (25%)</span>
+            <span class="font-medium" x-text="formatKr(momsBeloeb)"></span>
+          </div>
+          <div class="flex justify-between text-lg font-bold pt-2 border-t border-outline-variant/30">
+            <span>Total inkl. moms</span>
+            <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Betingelser + note -->
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">notes</span>
+          Note til kunden
+        </h2>
+        <textarea x-model="faktura.note" rows="3" class="field-textarea w-full"
+          placeholder="F.eks. Tak for samarbejdet. Ved spørgsmål kontakt os på tlf. +45 12 34 56 78."></textarea>
+      </section>
+
+      <!-- Handlinger (mobil) -->
+      <div class="flex flex-col sm:flex-row gap-3 lg:hidden pb-6">
+        <button @click="gem('kladde')" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95">
+          Gem kladde
+        </button>
+        <button @click="downloadPDF()"
+          class="flex-1 py-3 rounded-lg border-2 border-primary text-primary font-bold text-sm active:scale-95 flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-base">download</span>Download PDF
+        </button>
+        <button @click="sendFaktura()" :disabled="saving"
+          class="flex-1 py-3 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm active:scale-95 flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-base">send</span>Send faktura
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Live preview -->
+    <div class="hidden lg:flex w-[440px] xl:w-[500px] bg-surface-container border-l border-outline-variant flex-col">
+      <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-on-surface-variant text-base">visibility</span>
+          <span class="text-sm font-bold text-on-surface-variant uppercase tracking-wider">Forhåndsvisning</span>
+        </div>
+        <button @click="downloadPDF()"
+          class="flex items-center gap-1.5 text-xs font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-sm">download</span>PDF
+        </button>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+        <!-- Faktura preview kort -->
+        <div class="bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/20 p-8 text-sm space-y-6">
+
+          <!-- Header -->
+          <div class="flex justify-between items-start pb-6 border-b border-outline-variant/30">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-primary mb-2">Faktura</p>
+              <p class="font-bold text-base" x-text="faktura.afsender.firmanavn || 'Dit firmanavn'"></p>
+              <p class="text-on-surface-variant text-xs mt-1" x-text="faktura.afsender.adresse"></p>
+              <p class="text-on-surface-variant text-xs" x-text="'CVR: ' + (faktura.afsender.cvr || '—')"></p>
+              <p class="text-on-surface-variant text-xs" x-text="faktura.afsender.telefon"></p>
+              <p class="text-on-surface-variant text-xs" x-text="faktura.afsender.email"></p>
+            </div>
+            <div class="text-right">
+              <p class="font-bold text-on-surface text-base" x-text="faktura.id || 'MB-F-2025-001'"></p>
+              <p class="text-xs text-on-surface-variant mt-2">Fakturadato: <span x-text="faktura.fakturadato || '—'"></span></p>
+              <p class="text-xs text-on-surface-variant">Forfaldsdato: <span x-text="faktura.forfaldsdato || '—'"></span></p>
+              <p x-show="faktura.modtager.reference" class="text-xs text-on-surface-variant" x-text="'Sagsnr: ' + faktura.modtager.reference"></p>
+            </div>
+          </div>
+
+          <!-- Til -->
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Faktureres til</p>
+            <p class="font-bold" x-text="faktura.modtager.navn || 'Kundernavn'"></p>
+            <p class="text-on-surface-variant text-xs" x-text="faktura.modtager.kontaktperson"></p>
+            <p class="text-on-surface-variant text-xs" x-text="faktura.modtager.adresse"></p>
+            <p x-show="faktura.modtager.cvr" class="text-on-surface-variant text-xs" x-text="'CVR: ' + faktura.modtager.cvr"></p>
+            <p x-show="faktura.modtager.ean" class="text-on-surface-variant text-xs" x-text="'EAN: ' + faktura.modtager.ean"></p>
+          </div>
+
+          <!-- Beskrivelse -->
+          <div x-show="faktura.beskrivelse" class="p-3 bg-surface-container rounded-lg text-xs text-on-surface-variant" x-text="faktura.beskrivelse"></div>
+
+          <!-- Linjer -->
+          <div>
+            <div class="grid grid-cols-12 gap-1 pb-2 border-b border-outline-variant/30 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+              <div class="col-span-6">Beskrivelse</div>
+              <div class="col-span-2 text-center">Antal</div>
+              <div class="col-span-2 text-center">Enhed</div>
+              <div class="col-span-2 text-right">Beløb</div>
+            </div>
+            <template x-for="linje in faktura.linjer.filter(l => l.beskrivelse)" :key="linje">
+              <div class="grid grid-cols-12 gap-1 py-2 border-b border-outline-variant/10 text-xs">
+                <div class="col-span-6" x-text="linje.beskrivelse"></div>
+                <div class="col-span-2 text-center" x-text="linje.antal"></div>
+                <div class="col-span-2 text-center" x-text="linje.enhed"></div>
+                <div class="col-span-2 text-right" x-text="formatKr(linje.antal * linje.enhedspris)"></div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Totaler -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs text-on-surface-variant">
+              <span>Subtotal ekskl. moms</span>
+              <span x-text="formatKr(subtotal)"></span>
+            </div>
+            <div x-show="faktura.aconto > 0" class="flex justify-between text-xs text-on-surface-variant">
+              <span>Acontobetaling</span>
+              <span x-text="'− ' + formatKr(faktura.aconto)"></span>
+            </div>
+            <div class="flex justify-between text-xs text-on-surface-variant">
+              <span>Moms 25%</span>
+              <span x-text="formatKr(momsBeloeb)"></span>
+            </div>
+            <div class="flex justify-between font-bold text-base pt-2 border-t-2 border-primary/20">
+              <span>Total inkl. moms</span>
+              <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
+            </div>
+          </div>
+
+          <!-- Betaling -->
+          <div x-show="faktura.afsender.regNr || faktura.afsender.kontoNr || faktura.afsender.mobilePay"
+            class="pt-4 border-t border-outline-variant/20">
+            <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Betalingsoplysninger</p>
+            <p x-show="faktura.afsender.regNr && faktura.afsender.kontoNr"
+              class="text-xs" x-text="'Reg.nr. ' + faktura.afsender.regNr + '  ·  Konto: ' + faktura.afsender.kontoNr"></p>
+            <p x-show="faktura.afsender.mobilePay" class="text-xs" x-text="'MobilePay: ' + faktura.afsender.mobilePay"></p>
+          </div>
+
+          <!-- Note -->
+          <div x-show="faktura.note" class="pt-4 border-t border-outline-variant/20 text-xs text-on-surface-variant" x-text="faktura.note"></div>
+
+          <!-- Footer -->
+          <div class="pt-4 border-t border-outline-variant/10 text-center text-xs text-on-surface-variant/40">
+            Oprettet med Mesterbud.dk
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div x-show="toast.show" x-cloak x-transition
+    class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2"
+    style="background:#31302d;color:#f4f0ea">
+    <span class="material-symbols-outlined text-base" x-text="toast.icon"></span>
+    <span x-text="toast.msg"></span>
+  </div>
+</div>
+
+<script>
+function fakturaApp() {
+  return {
+    saving: false,
+    autoSaved: false,
+    _harUgemmede: false,
+    autoSaveTimer: null,
+    toast: { show: false, msg: '', icon: 'check_circle' },
+    konverteretFra: '',
+    visAconto: false,
+
+    // DAWA
+    dawaAfs: [], dawaMod: [], _dawaTA: null, _dawaTM: null,
+
+    // Rykker
+    rykkerModal: false,
+    rykkerLoading: false,
+    rykkerTekst: '',
+    rykkerNyFrist: '',
+    rykkerFejl: '',
+    sendingRykker: false,
+
+    faktura: {
+      id: '',
+      status: 'kladde',
+      fakturadato: '',
+      forfaldsdato: '',
+      betalingsbetingelse: 'netto14',
+      beskrivelse: '',
+      note: '',
+      aconto: 0,
+      afsender: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', regNr: '', kontoNr: '', mobilePay: '' },
+      modtager: { navn: '', cvr: '', kontaktperson: '', stilling: '', adresse: '', email: '', telefon: '', ean: '', reference: '' },
+      linjer: [{ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }],
+      konverteretFraTilbud: null,
+    },
+
+    async init() {
+      const today = new Date();
+      this.faktura.fakturadato = today.toISOString().split('T')[0];
+      this.opdaterForfald();
+      await this.loadProfil();
+
+      // Konverter fra tilbud?
+      const params = new URLSearchParams(window.location.search);
+      const fraTilbud = params.get('fraTilbud');
+      if (fraTilbud) await this.hentTilbud(fraTilbud);
+
+      // Auto-save hvert 30 sek
+      this.autoSaveTimer = setInterval(() => this.autoGem(), 30000);
+      this.$watch('faktura', () => { this.autoSaved = false; this._harUgemmede = true; }, { deep: true });
+    },
+
+    opdaterForfald() {
+      const dage = { netto8: 8, netto14: 14, netto30: 30, straks: 0 }[this.faktura.betalingsbetingelse] ?? 14;
+      const dato = new Date(this.faktura.fakturadato || Date.now());
+      dato.setDate(dato.getDate() + dage);
+      this.faktura.forfaldsdato = dato.toISOString().split('T')[0];
+    },
+
+    async loadProfil() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-user', { headers: { 'Authorization': 'Bearer ' + s.access_token } });
+        if (res.ok) {
+          const u = await res.json();
+          if (u.virksomhed) {
+            this.faktura.afsender = {
+              firmanavn: u.virksomhed.firmanavn || '',
+              adresse:   u.virksomhed.adresse   || '',
+              cvr:       u.virksomhed.cvr        || '',
+              telefon:   u.virksomhed.telefon    || '+45 ',
+              email:     u.virksomhed.email      || '',
+              regNr:     u.virksomhed.regNr      || '',
+              kontoNr:   u.virksomhed.kontoNr    || '',
+              mobilePay: u.virksomhed.mobilePay  || '',
+            };
+          }
+          if (!this.faktura.afsender.telefon) this.faktura.afsender.telefon = '+45 ';
+          if (u.indstillinger?.betalingsbetingelse) {
+            this.faktura.betalingsbetingelse = u.indstillinger.betalingsbetingelse;
+            this.opdaterForfald();
+          }
+        }
+      } catch(e) {}
+    },
+
+    async hentTilbud(tilbudsId) {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-tilbud', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'enkelt', tilbudsId })
+        });
+        if (res.ok) {
+          const t = await res.json();
+          this.konverteretFra = tilbudsId;
+          this.faktura.konverteretFraTilbud = tilbudsId;
+          if (t.modtager) this.faktura.modtager = { ...this.faktura.modtager, ...t.modtager };
+          if (t.linjer?.length) this.faktura.linjer = t.linjer.map(l => ({ ...l }));
+          if (t.beskrivelse) this.faktura.beskrivelse = t.beskrivelse;
+          this.visToast('Tilbud konverteret til faktura', 'check_circle');
+        }
+      } catch(e) {}
+    },
+
+    async hentDawa(felt, q) {
+      if (q.length < 3) { this[felt === 'afs' ? 'dawaAfs' : 'dawaMod'] = []; return; }
+      const timerKey = felt === 'afs' ? '_dawaTA' : '_dawaTM';
+      const resultKey = felt === 'afs' ? 'dawaAfs' : 'dawaMod';
+      clearTimeout(this[timerKey]);
+      this[timerKey] = setTimeout(async () => {
+        try {
+          const r = await fetch('https://api.dataforsyningen.dk/adresser/autocomplete?q=' + encodeURIComponent(q) + '&per_side=6');
+          this[resultKey] = await r.json();
+        } catch {}
+      }, 300);
+    },
+
+    tilfoejLinje() {
+      this.faktura.linjer.push({ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 });
+    },
+    fjernLinje(i) {
+      if (this.faktura.linjer.length > 1) this.faktura.linjer.splice(i, 1);
+    },
+
+    get subtotal() {
+      return this.faktura.linjer.reduce((s, l) => s + (l.antal || 0) * (l.enhedspris || 0), 0);
+    },
+    get momsBeloeb() {
+      return Math.max(0, this.subtotal - (this.faktura.aconto || 0)) * 0.25;
+    },
+    get total() {
+      return Math.max(0, this.subtotal - (this.faktura.aconto || 0)) + this.momsBeloeb;
+    },
+
+    formatKr(v) {
+      return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v || 0);
+    },
+
+    async gem(status) {
+      this.saving = true;
+      try {
+        const payload = { ...this.faktura, status, subtotal: this.subtotal, momsBeloeb: this.momsBeloeb, total: this.total };
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-faktura', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.faktura) {
+          this.faktura.id = data.faktura.id;
+          this.autoSaved = true;
+          this._harUgemmede = false;
+          this.visToast(status === 'kladde' ? 'Kladde gemt' : 'Faktura gemt', 'check_circle');
+        } else {
+          this.visToast(data.error || 'Fejl ved gemning', 'error');
+        }
+      } catch(e) {
+        this.visToast('Netværksfejl – prøv igen', 'error');
+      }
+      this.saving = false;
+    },
+
+    async autoGem() {
+      if (this.autoSaved || !this._harUgemmede) return;
+      this._harUgemmede = false;
+      this.saving = true;
+      try {
+        const payload = { ...this.faktura, status: 'kladde', subtotal: this.subtotal, momsBeloeb: this.momsBeloeb, total: this.total };
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-faktura', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.faktura) {
+          this.faktura.id = data.faktura.id;
+          this.autoSaved = true;
+          setTimeout(() => { this.autoSaved = false; }, 2000);
+        }
+      } catch(e) {}
+      this.saving = false;
+    },
+
+    async sendFaktura() {
+      if (!this.faktura.modtager.navn) { this.visToast('Udfyld kundenavn inden afsendelse', 'warning'); return; }
+      if (!this.faktura.modtager.email) { this.visToast('Udfyld kundens e-mail inden afsendelse', 'warning'); return; }
+      // Gem først
+      await this.gem('kladde');
+      if (!this.faktura.id) return;
+      this.saving = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/send-faktura', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fakturaId: this.faktura.id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          this.faktura.status = 'afventer_betaling';
+          this.visToast('Faktura sendt til ' + this.faktura.modtager.email, 'mark_email_read');
+          if (data.previewLink) {
+            await navigator.clipboard.writeText(data.previewLink).catch(() => {});
+          }
+        } else {
+          this.visToast(data.error || 'Afsendelse fejlede', 'error');
+        }
+      } catch(e) {
+        this.visToast('Netværksfejl – prøv igen', 'error');
+      }
+      this.saving = false;
+    },
+
+    async aabRykker() {
+      if (!this.faktura.id) { this.visToast('Gem fakturaen først', 'warning'); return; }
+      this.rykkerModal = true;
+      this.rykkerLoading = true;
+      this.rykkerTekst = '';
+      this.rykkerFejl = '';
+      this.rykkerNyFrist = '';
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/send-rykker', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fakturaId: this.faktura.id, generer: true })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          this.rykkerTekst = data.tekst;
+          this.rykkerNyFrist = data.nyFrist;
+        } else {
+          this.rykkerFejl = data.error || 'Generering fejlede';
+        }
+      } catch(e) { this.rykkerFejl = 'Netværksfejl'; }
+      this.rykkerLoading = false;
+    },
+
+    async sendRykker() {
+      this.sendingRykker = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/send-rykker', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fakturaId: this.faktura.id, tekst: this.rykkerTekst })
+        });
+        if (res.ok) {
+          this.rykkerModal = false;
+          this.visToast('Rykker sendt!', 'mark_email_read');
+        } else {
+          const d = await res.json();
+          this.rykkerFejl = d.error || 'Afsendelse fejlede';
+        }
+      } catch(e) { this.rykkerFejl = 'Netværksfejl'; }
+      this.sendingRykker = false;
+    },
+
+    downloadPDF() {
+      if (!this.faktura.id) { this.visToast('Gem fakturaen først', 'warning'); return; }
+      const siteUrl = window.location.origin;
+      // Åbn preview med PDF-flag – preview siden håndterer PDF-generering
+      window.open(`${siteUrl}/faktura-preview.html?id=${this.faktura.id}&pdf=1&selfToken=1`, '_blank');
+    },
+
+    visToast(msg, icon = 'check_circle') {
+      this.toast = { show: true, msg, icon };
+      setTimeout(() => { this.toast.show = false; }, 3500);
+    }
+  };
+}
+</script>
+</body>
+</html>

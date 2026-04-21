@@ -149,7 +149,42 @@ tailwind.config = {
       </div>
     </section>
 
-    <!-- SEKTION 1b: Priser og standardindstillinger -->
+    <!-- SEKTION 1b: Betalingsoplysninger til fakturaer -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">account_balance</span>
+        <div>
+          <h2 class="font-bold text-base">Betalingsoplysninger</h2>
+          <p class="text-xs text-on-surface-variant">Vises på dine fakturaer – bruges til kundernes bankoverførsler.</p>
+        </div>
+      </div>
+      <div class="p-6 space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Reg.nr.</label>
+            <input x-model="virksomhed.regNr" type="text" placeholder="1234" maxlength="4" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">Kontonummer</label>
+            <input x-model="virksomhed.kontoNr" type="text" placeholder="12345678901" maxlength="11" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">MobilePay nummer</label>
+            <input x-model="virksomhed.mobilePay" type="text" placeholder="+45 12 34 56 78" class="field-input"/>
+            <p class="text-xs text-on-surface-variant mt-1">Valgfrit – vises som alternativ betalingsmetode.</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-end pt-2">
+          <button @click="gemVirksomhed()" :disabled="gemmerVirksomhed"
+            class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+            <span x-show="gemmerVirksomhed" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            Gem betalingsoplysninger
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEKTION 1c: Priser og standardindstillinger -->
     <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden"
       x-data="indstillingerApp()" x-init="init()">
       <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
@@ -468,7 +503,7 @@ function kontoApp() {
     trialSlutter: null,
     dageTilbage: null,
     stripeStatus: null,
-    virksomhed: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', logo: '' },
+    virksomhed: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', logo: '', regNr: '', kontoNr: '', mobilePay: '' },
     gemmerVirksomhed: false,
     gemtVirksomhed: false,
     checkoutLoading: false,

@@ -117,6 +117,29 @@
   to = "/.netlify/functions/admin-send-mail"
   status = 200
 
+[[redirects]]
+  from = "/api/save-faktura"
+  to = "/.netlify/functions/save-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-faktura"
+  to = "/.netlify/functions/get-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-faktura"
+  to = "/.netlify/functions/send-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-rykker"
+  to = "/.netlify/functions/send-rykker"
+  status = 200
+
+[functions."check-forfald"]
+  schedule = "0 2 * * *"
+
 # Clean URL redirects (ingen .html i URL)
 [[redirects]]
   from = "/dashboard"
@@ -136,6 +159,16 @@
 [[redirects]]
   from = "/konto"
   to = "/konto.html"
+  status = 200
+
+[[redirects]]
+  from = "/faktura"
+  to = "/faktura.html"
+  status = 200
+
+[[redirects]]
+  from = "/fakturaer"
+  to = "/dashboard.html"
   status = 200
 
 [[headers]]

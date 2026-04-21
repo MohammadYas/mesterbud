@@ -96,6 +96,12 @@ tailwind.config = {
         <span class="material-symbols-outlined text-xl">description</span>
         Tilbud
       </button>
+      <button @click="setView('fakturaer'); sidebarOpen = false"
+        :class="currentView === 'fakturaer' ? 'active' : ''"
+        class="sidebar-link w-full text-left">
+        <span class="material-symbols-outlined text-xl">receipt_long</span>
+        Fakturaer
+      </button>
       <a href="/konto.html" class="sidebar-link">
         <span class="material-symbols-outlined text-xl">manage_accounts</span>
         Konto
@@ -132,11 +138,16 @@ tailwind.config = {
       <button @click="sidebarOpen = !sidebarOpen" class="md:hidden text-on-surface-variant hover:text-on-surface">
         <span class="material-symbols-outlined">menu</span>
       </button>
-      <h1 class="text-lg font-bold flex-1" x-text="currentView === 'oversigt' ? 'Oversigt' : 'Mine tilbud'"></h1>
-      <a href="/tilbud-ny.html"
+      <h1 class="text-lg font-bold flex-1" x-text="{'oversigt':'Oversigt','tilbud':'Mine tilbud','fakturaer':'Fakturaer'}[currentView] || 'Dashboard'"></h1>
+      <a x-show="currentView !== 'fakturaer'" href="/tilbud-ny.html"
         class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
         <span class="material-symbols-outlined text-base">add</span>
         Nyt tilbud
+      </a>
+      <a x-show="currentView === 'fakturaer'" x-cloak href="/faktura.html"
+        class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-5 py-2 rounded-lg font-bold text-sm active:scale-95 transition-all shadow-md shadow-primary/20">
+        <span class="material-symbols-outlined text-base">add</span>
+        Ny faktura
       </a>
     </header>
 
@@ -425,6 +436,100 @@ tailwind.config = {
         </div>
       </div>
     </div>
+
+    <!-- FAKTURAER VIEW -->
+    <div x-show="!loading && currentView === 'fakturaer'" x-cloak class="p-6 md:p-8 space-y-6">
+
+      <!-- Filters -->
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex gap-2 flex-wrap">
+          <template x-for="f in ['alle','kladde','afventer_betaling','forfalden','betalt']" :key="f">
+            <button @click="fakturaFilter = f"
+              :class="fakturaFilter === f ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'"
+              class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all active:scale-95"
+              x-text="{'alle':'Alle','kladde':'Kladde','afventer_betaling':'Afventer','forfalden':'Forfalden','betalt':'Betalt'}[f] || f">
+            </button>
+          </template>
+        </div>
+        <div class="relative sm:ml-auto">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+          <input x-model="fakturaSearch" type="text" placeholder="Søg på kunde eller nr..."
+            class="pl-9 pr-4 py-2 rounded-lg bg-surface-container-low border border-outline-variant text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors w-full sm:w-56"/>
+        </div>
+      </div>
+
+      <!-- Loading fakturaer -->
+      <div x-show="fakturaerLoading" class="flex items-center gap-3 py-8 text-on-surface-variant">
+        <span class="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+        Henter fakturaer...
+      </div>
+
+      <!-- Tom liste -->
+      <div x-show="!fakturaerLoading && filteredFakturaer.length === 0 && fakturaer.length === 0"
+        class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 p-12 text-center">
+        <span class="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4 block">receipt_long</span>
+        <h3 class="font-bold text-on-surface-variant mb-2">Ingen fakturaer endnu</h3>
+        <p class="text-sm text-on-surface-variant mb-6">Opret din første faktura eller konvertér et accepteret tilbud.</p>
+        <a href="/faktura.html" class="inline-flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-base">add</span>
+          Opret faktura
+        </a>
+      </div>
+
+      <!-- Faktura tabel -->
+      <div x-show="!fakturaerLoading && fakturaer.length > 0" class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[700px]">
+            <thead>
+              <tr class="border-b border-outline-variant/30">
+                <th class="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Fakturanr.</th>
+                <th class="text-left px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Kunde</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beløb</th>
+                <th class="text-center px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Status</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant hidden md:table-cell">Forfaldsdato</th>
+                <th class="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Handlinger</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="f in filteredFakturaer" :key="f.id">
+                <tr class="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container-low transition-colors">
+                  <td class="px-5 py-4 font-mono text-xs font-medium text-on-surface-variant" x-text="f.id"></td>
+                  <td class="px-5 py-4 font-medium" x-text="f.modtager?.navn || '—'"></td>
+                  <td class="px-5 py-4 text-right font-bold" x-text="formatKr(f.total || 0)"></td>
+                  <td class="px-5 py-4 text-center">
+                    <span :class="fakturaStatusClass(f.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" x-text="fakturaStatusLabel(f.status)"></span>
+                  </td>
+                  <td class="px-5 py-4 text-right text-on-surface-variant hidden md:table-cell" x-text="formatDato(f.forfaldsdato)"></td>
+                  <td class="px-5 py-4">
+                    <div class="flex items-center justify-end gap-1">
+                      <a :href="'/faktura.html?id=' + f.id" title="Rediger"
+                        class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-base">edit</span>
+                      </a>
+                      <a x-show="f.publicToken" :href="'/faktura-preview.html?id=' + f.id + '&token=' + f.publicToken" target="_blank" title="Preview"
+                        class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
+                        <span class="material-symbols-outlined text-base">visibility</span>
+                      </a>
+                      <button @click="sletFaktura(f)" title="Slet"
+                        class="p-1.5 rounded-lg hover:bg-error-container transition-colors text-on-surface-variant hover:text-error">
+                        <span class="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="filteredFakturaer.length === 0 && fakturaer.length > 0">
+                <td colspan="6" class="px-5 py-12 text-center text-on-surface-variant">
+                  <span class="material-symbols-outlined text-3xl block mb-2">search_off</span>
+                  Ingen fakturaer matcher din søgning.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Opfølgning modal -->
@@ -524,6 +629,12 @@ function app() {
     opfoelgningSender: false,
     opfoelgningFejl: '',
 
+    // Fakturaer
+    fakturaer: [],
+    fakturaerLoading: false,
+    fakturaFilter: 'alle',
+    fakturaSearch: '',
+
     async init() {
       // Get user info from JWT
       const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
@@ -579,7 +690,66 @@ function app() {
       } catch(e) {}
     },
 
-    setView(v) { this.currentView = v; },
+    setView(v) {
+      this.currentView = v;
+      if (v === 'fakturaer' && this.fakturaer.length === 0) this.loadFakturaer();
+    },
+
+    async loadFakturaer() {
+      this.fakturaerLoading = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-faktura', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'alle' })
+        });
+        if (res.ok) this.fakturaer = await res.json();
+      } catch(e) {}
+      this.fakturaerLoading = false;
+    },
+
+    async sletFaktura(f) {
+      if (!confirm(`Slet faktura ${f.id}? Denne handling kan ikke fortrydes.`)) return;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-faktura', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: f.id })
+        });
+        if (res.ok) this.fakturaer = this.fakturaer.filter(x => x.id !== f.id);
+      } catch(e) {}
+    },
+
+    get filteredFakturaer() {
+      return this.fakturaer.filter(f => {
+        const matchFilter = this.fakturaFilter === 'alle' || f.status === this.fakturaFilter;
+        const q = this.fakturaSearch.toLowerCase();
+        const matchSearch = !q || (f.modtager?.navn || '').toLowerCase().includes(q) || (f.id || '').toLowerCase().includes(q);
+        return matchFilter && matchSearch;
+      });
+    },
+
+    fakturaStatusClass(s) {
+      return {
+        'kladde': 'bg-surface-container-high text-on-surface-variant',
+        'afventer_betaling': 'bg-blue-100 text-blue-800',
+        'forfalden': 'bg-red-100 text-red-700',
+        'betalt': 'bg-green-100 text-green-800',
+        'betalt_af_kunde': 'bg-green-100 text-green-800',
+      }[s] || 'bg-surface-container-high text-on-surface-variant';
+    },
+
+    fakturaStatusLabel(s) {
+      return {
+        'kladde': 'Kladde',
+        'afventer_betaling': 'Afventer',
+        'forfalden': 'Forfalden',
+        'betalt': 'Betalt',
+        'betalt_af_kunde': 'Betalt (kunde)',
+      }[s] || 'Kladde';
+    },
 
     get metrics() {
       const now = new Date();
@@ -731,7 +901,7 @@ function app() {
             mailTekst: this.opfoelgningTekst,
             kundeEmail: this.opfoelgningTilbud.modtager?.email || '',
             kundenavn: this.opfoelgningTilbud.modtager?.navn || '',
-            afsenderFirma: u.virksomhed?.navn || ''
+            afsenderFirma: u.virksomhed?.firmanavn || ''
           })
         });
         const data = await res.json();

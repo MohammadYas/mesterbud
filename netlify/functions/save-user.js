@@ -36,7 +36,7 @@ exports.handler = async (event, context) => {
     if (body.virksomhed && typeof body.virksomhed === 'object') {
       const v = body.virksomhed;
       const cleanVirksomhed = {
-        navn:               sanitizeString(v.navn, 150),
+        firmanavn:          sanitizeString(v.firmanavn, 150),
         adresse:            sanitizeString(v.adresse, 200),
         postnr:             sanitizeString(v.postnr, 10),
         by:                 sanitizeString(v.by, 100),
@@ -46,6 +46,10 @@ exports.handler = async (event, context) => {
         hjemmeside:         sanitizeString(v.hjemmeside, 200),
         betalingsbetingelser: sanitizeString(v.betalingsbetingelser, 500),
         momsNr:             sanitizeString(v.momsNr, 30),
+        // Betalingsoplysninger til fakturaer
+        regNr:              sanitizeString(v.regNr, 10),
+        kontoNr:            sanitizeString(v.kontoNr, 20),
+        mobilePay:          sanitizeString(v.mobilePay, 30),
         // Logo: kun base64 data-URL tilladt
         logo: typeof v.logo === 'string' && v.logo.startsWith('data:image/')
           ? v.logo.slice(0, 500_000) // maks ~375 KB billede

@@ -57,6 +57,20 @@ tailwind.config = {
 
 <div x-data="adminApp()" x-init="init()" class="flex h-screen overflow-hidden bg-surface">
 
+<!-- Adgang nægtet overlay -->
+<div x-show="adgangNaegtet" x-cloak class="fixed inset-0 bg-surface z-50 flex items-center justify-center p-8">
+  <div class="text-center max-w-sm">
+    <span class="material-symbols-outlined text-6xl text-error mb-4 block">lock</span>
+    <h2 class="text-2xl font-bold mb-2">Adgang nægtet</h2>
+    <p class="text-on-surface-variant mb-2">Din konto (<span x-text="adminEmail" class="font-mono text-sm"></span>) har ikke admin-adgang.</p>
+    <p class="text-sm text-on-surface-variant mb-6">Kontakt systemadministratoren for at få adgang.</p>
+    <a href="/dashboard.html" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold">
+      <span class="material-symbols-outlined text-base">arrow_back</span>
+      Gå til dashboard
+    </a>
+  </div>
+</div>
+
 <!-- Mobile overlay -->
 <div x-show="sidebarOpen" x-cloak @click="sidebarOpen=false" class="fixed inset-0 bg-black/40 z-30 md:hidden"></div>
 
@@ -667,6 +681,7 @@ function adminApp() {
     sidebarOpen: false,
     pageLoading: true,
     adminEmail: '',
+    adgangNaegtet: false,
 
     // Data
     stats: null,
@@ -771,7 +786,13 @@ function adminApp() {
         this.stats = data;
         await this.$nextTick();
         this.drawCharts();
-      } catch (e) { this.showToast('Fejl: ' + e.message); }
+      } catch (e) {
+        if (e.message && (e.message.includes('403') || e.message.includes('Adgang nægtet') || e.message.includes('401'))) {
+          this.adgangNaegtet = true;
+        } else {
+          this.showToast('Fejl: ' + e.message);
+        }
+      }
     },
 
     async loadUsers() {

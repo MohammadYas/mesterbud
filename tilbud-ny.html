@@ -431,16 +431,28 @@ tailwind.config = {
           Tilbudsdetaljer
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <div>
+          <div x-data="{ manuelt: false }">
             <label class="field-label">Tilbudsnummer</label>
-            <div class="relative">
-              <input x-model="tilbud.id" type="text" class="field-input pr-8" placeholder="Auto-genereres ved gemning"/>
-              <button x-show="tilbud.id" type="button" @click="tilbud.id = ''" title="Nulstil til auto-nummer"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors">
-                <span class="material-symbols-outlined text-base">close</span>
+            <!-- Auto-tilstand -->
+            <div x-show="!manuelt" class="flex items-center gap-2">
+              <div class="flex-1 h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm text-on-surface-variant">auto_awesome</span>
+                <span class="text-sm text-on-surface-variant italic" x-text="tilbud.id || 'Autogenereres ved gemning'"></span>
+              </div>
+              <button type="button" @click="manuelt = true; $nextTick(() => $root.querySelector('[data-nummer-input]')?.focus())"
+                class="px-3 h-10 rounded-lg border border-outline-variant text-xs font-medium text-on-surface-variant hover:bg-surface-container transition-colors whitespace-nowrap">
+                Angiv selv
               </button>
             </div>
-            <p class="text-xs text-on-surface-variant mt-1">Tomt = automatisk. Skriv dit eget f.eks. 2024-042.</p>
+            <!-- Manuel tilstand -->
+            <div x-show="manuelt" class="flex items-center gap-2">
+              <input data-nummer-input x-model="tilbud.id" type="text" class="field-input flex-1" placeholder="f.eks. 2025-042" maxlength="30"/>
+              <button type="button" @click="manuelt = false; tilbud.id = ''"
+                title="Brug autogenereret nummer"
+                class="px-3 h-10 rounded-lg border border-outline-variant text-xs font-medium text-on-surface-variant hover:bg-surface-container transition-colors whitespace-nowrap">
+                Auto
+              </button>
+            </div>
           </div>
           <div>
             <label class="field-label">Dato</label>

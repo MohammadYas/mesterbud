@@ -7,7 +7,10 @@
 
 const { checkRateLimit, getClientIP, rateLimitResponse, CORS_HEADERS } = require('./_security');
 
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'mohammadyassin26@hotmail.com').toLowerCase();
+// Understøtter én eller kommaseparerede admin-emails i ADMIN_EMAIL env var
+const ADMIN_EMAILS = (process.env.ADMIN_EMAIL || 'mohammadyassin26@hotmail.com')
+  .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+const ADMIN_EMAIL = ADMIN_EMAILS[0]; // Bagudkompatibilitet
 
 // Lag 7: Streng CSP for admin API-svar
 const ADMIN_HEADERS = {
@@ -32,7 +35,7 @@ function verifyAdmin(event, context) {
   if (!user) return { error: 'Ikke autoriseret – log ind', statusCode: 401 };
 
   // Lag 1: Email whitelist
-  if ((user.email || '').toLowerCase() !== ADMIN_EMAIL) {
+  if (!ADMIN_EMAILS.includes((user.email || '').toLowerCase())) {
     // Log forsøget uden at afsløre den rigtige admin email
     console.warn(`Admin adgangsforsøg nægtet for: ${user.email}`);
     return { error: 'Adgang nægtet', statusCode: 403 };
@@ -66,4 +69,4 @@ function adminGuard(event, context) {
   return null; // Adgang tilladt
 }
 
-module.exports = { adminGuard, verifyAdmin, ADMIN_HEADERS, ADMIN_EMAIL };
+module.exports = { adminGuard, verifyAdmin, ADMIN_HEADERS, ADMIN_EMAIL, ADMIN_EMAILS };

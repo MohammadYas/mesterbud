@@ -87,7 +87,7 @@ exports.handler = async (event, context) => {
       // Fallback: brug blob-profiler alene (ingen email)
       users = Object.entries(profileMap).map(([userId, profil]) => {
         const tilbudStats = tilbudCountMap[userId] || { count: 0, totalVaerdi: 0 };
-        return buildUserObj(userId, profil.email || '—', profil.virksomhed?.navn, profil.oprettet, profil, tilbudStats);
+        return buildUserObj(userId, profil.email || '—', profil.virksomhed?.firmanavn, profil.oprettet, profil, tilbudStats);
       });
     }
 
@@ -138,7 +138,7 @@ function buildUserObj(userId, email, name, createdAt, profil, tilbudStats) {
   return {
     id: userId,
     email: email || '—',
-    name: name || profil.virksomhed?.navn || '',
+    name: name || profil.virksomhed?.firmanavn || '',
     createdAt: createdAt || profil.oprettet || null,
     plan,
     status,
