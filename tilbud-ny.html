@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <meta name="theme-color" content="#a23900">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
 tailwind.config = {
@@ -29,13 +29,40 @@ tailwind.config = {
 }
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; font-family: 'Material Symbols Outlined'; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
   h1, h2, h3 { font-family: 'Newsreader', serif; }
   [x-cloak] { display: none !important; }
   .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
   .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
   .field-textarea { @apply w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none; }
+  /* Linjer grid – fixed columns på desktop */
+  .linjer-row {
+    background: #f7f3ed;
+    border: 1px solid rgba(225,191,179,0.3);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+  .linjer-header { display: none; }
+  @media (min-width: 1024px) {
+    .linjer-header {
+      display: grid;
+      grid-template-columns: 1fr 80px 100px 120px 32px;
+      gap: 0.5rem;
+      padding: 0 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .linjer-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 100px 120px 32px;
+      gap: 0.5rem;
+      align-items: center;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+    }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -296,6 +323,9 @@ tailwind.config = {
         </div>
       </section>
 
+      <!-- Afsender + Modtager side om side på md+ -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
       <!-- Afsender -->
       <section class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-outline-variant/20 shadow-sm">
         <h2 class="text-base font-bold mb-4 flex items-center gap-2">
@@ -439,6 +469,8 @@ tailwind.config = {
 
       </section>
 
+      </div><!-- /Afsender + Modtager grid -->
+
       <!-- Tilbudsdetaljer -->
       <section class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-outline-variant/20 shadow-sm">
         <h2 class="text-base font-bold mb-4 flex items-center gap-2">
@@ -496,33 +528,34 @@ tailwind.config = {
           Linjer
         </h2>
 
-        <!-- Desktop header -->
-        <div class="hidden lg:grid grid-cols-12 gap-2 mb-2 px-1">
-          <div class="col-span-5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Antal</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Enhed</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
-          <div class="col-span-1"></div>
+        <!-- Desktop header (via CSS class) -->
+        <div class="linjer-header">
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Antal</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Enhed</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
+          <div></div>
         </div>
 
         <div class="space-y-3 lg:space-y-2">
           <template x-for="(linje, i) in tilbud.linjer" :key="i">
-            <!-- Mobile: card layout. Desktop: grid row -->
-            <div class="bg-surface-container-low lg:bg-transparent rounded-lg lg:rounded-none border border-outline-variant/30 lg:border-0 p-3 lg:p-0 lg:grid lg:grid-cols-12 lg:gap-2 lg:items-center">
-              <!-- Beskrivelse -->
-              <div class="lg:col-span-5 mb-2 lg:mb-0">
+            <div class="linjer-row">
+              <!-- Beskrivelse (desktop: grid item, mobile: full width) -->
+              <div class="mb-2 lg:mb-0">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Beskrivelse</label>
                 <input x-model="linje.beskrivelse" type="text" placeholder="Beskrivelse" class="field-input"/>
               </div>
-              <!-- Antal + Enhed + Pris row on mobile, grid cols on desktop -->
+              <!-- Antal + Enhed + Pris: row on mobile, individual grid items on desktop -->
               <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 lg:contents">
-                <div class="lg:col-span-2">
+                <!-- Antal -->
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Antal</label>
-                  <input x-model.number="linje.antal" type="number" min="0" step="0.01" placeholder="1" class="field-input text-center"/>
+                  <input x-model.number="linje.antal" type="number" min="0" step="0.01" placeholder="1" class="field-input text-right"/>
                 </div>
-                <div class="lg:col-span-2">
+                <!-- Enhed -->
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Enhed</label>
-                  <select x-model="linje.enhed" class="field-input text-center">
+                  <select x-model="linje.enhed" class="field-input">
                     <option value="stk">stk</option>
                     <option value="time">time</option>
                     <option value="m²">m²</option>
@@ -533,12 +566,14 @@ tailwind.config = {
                     <option value="ls">ls</option>
                   </select>
                 </div>
-                <div class="lg:col-span-2">
+                <!-- Pris -->
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Pris ekskl.</label>
                   <input x-model.number="linje.enhedspris" type="number" min="0" step="0.01" placeholder="0,00" class="field-input text-right"/>
                 </div>
-                <div class="lg:col-span-1 flex items-end lg:items-center justify-center pb-0 lg:pb-0">
-                  <button @click="fjernLinje(i)" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors">
+                <!-- Slet-knap -->
+                <div class="flex items-end lg:items-center justify-center">
+                  <button @click="fjernLinje(i)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors" title="Fjern linje">
                     <span class="material-symbols-outlined text-base">remove_circle</span>
                   </button>
                 </div>
@@ -709,6 +744,72 @@ tailwind.config = {
     </div>
   </div>
 
+  <!-- Mobil: floating preview-knap (skjult på xl+) -->
+  <button @click="previewOpen = true"
+    class="xl:hidden fixed bottom-20 right-4 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-lowest border border-outline-variant shadow-lg text-sm font-bold text-on-surface active:scale-95 transition-all">
+    <span class="material-symbols-outlined text-base text-primary">visibility</span>
+    Forhåndsvisning
+  </button>
+
+  <!-- Mobil preview modal -->
+  <div x-show="previewOpen" x-cloak class="xl:hidden fixed inset-0 bg-black/60 z-50 flex flex-col"
+    x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div class="flex items-center justify-between px-4 py-3 bg-surface-container-lowest border-b border-outline-variant">
+      <span class="font-bold text-sm flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-base">visibility</span>
+        Forhåndsvisning
+      </span>
+      <button @click="previewOpen = false" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-container">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="flex-1 overflow-auto p-4 bg-surface-container">
+      <div class="bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/20 p-6 text-sm">
+        <div class="flex justify-between items-start mb-6 pb-5 border-b border-outline-variant/30">
+          <div>
+            <p class="font-bold text-base" x-text="tilbud.afsender.firmanavn || 'Dit firmanavn'"></p>
+            <p class="text-on-surface-variant text-xs mt-1" x-text="tilbud.afsender.adresse"></p>
+            <p class="text-on-surface-variant text-xs" x-text="tilbud.afsender.telefon"></p>
+            <p class="text-on-surface-variant text-xs" x-text="tilbud.afsender.email"></p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Tilbud</p>
+            <p class="font-bold text-on-surface" x-text="tilbud.id || 'MB-2024-001'"></p>
+            <p class="text-xs text-on-surface-variant mt-2" x-text="'Dato: ' + (tilbud.dato || '—')"></p>
+            <p class="text-xs text-on-surface-variant" x-text="'Gyldig til: ' + (tilbud.gyldigTil || '—')"></p>
+          </div>
+        </div>
+        <div class="mb-5">
+          <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Til</p>
+          <p class="font-bold" x-text="tilbud.modtager.navn || '—'"></p>
+          <p class="text-on-surface-variant text-xs" x-text="tilbud.modtager.adresse"></p>
+        </div>
+        <div class="mb-5">
+          <template x-for="linje in tilbud.linjer.filter(l => l.beskrivelse)" :key="linje">
+            <div class="flex justify-between py-2 border-b border-outline-variant/10 text-xs">
+              <span x-text="linje.beskrivelse + ' (' + linje.antal + ' ' + linje.enhed + ')'"></span>
+              <span class="font-medium ml-4 flex-shrink-0" x-text="formatKr(linje.antal * linje.enhedspris)"></span>
+            </div>
+          </template>
+        </div>
+        <div class="space-y-1.5 pt-2">
+          <div class="flex justify-between text-xs text-on-surface-variant">
+            <span x-text="tilbud.inkluderMoms ? 'Subtotal ekskl. moms' : 'Subtotal'"></span>
+            <span x-text="formatKr(subtotal)"></span>
+          </div>
+          <div x-show="tilbud.inkluderMoms" class="flex justify-between text-xs text-on-surface-variant">
+            <span>Moms 25%</span>
+            <span x-text="formatKr(moms)"></span>
+          </div>
+          <div class="flex justify-between font-bold text-base pt-2 border-t-2 border-primary/20">
+            <span x-text="tilbud.inkluderMoms ? 'Total inkl. moms' : 'Total'"></span>
+            <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div x-show="toast.show" x-cloak x-transition
     class="fixed bottom-6 right-6 z-50 bg-inverse-surface text-inverse-on-surface px-5 py-3 rounded-xl shadow-xl text-sm font-medium flex items-center gap-2"
@@ -869,6 +970,7 @@ function tilbudApp() {
     autoSaveTimer: null,
     _harUgemmede: false,
     toast: { show: false, msg: '', icon: 'check_circle' },
+    previewOpen: false,
     userPlan: 'trial',
     // AI state
     optager: false,
