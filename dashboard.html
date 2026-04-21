@@ -77,10 +77,10 @@ tailwind.config = {
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
 
     <!-- Logo -->
-    <div class="flex items-center gap-2 px-6 h-16 border-b border-outline-variant flex-shrink-0">
+    <button @click="setView('oversigt'); sidebarOpen = false" class="flex items-center gap-2 px-6 h-16 border-b border-outline-variant flex-shrink-0 w-full hover:bg-surface-container-low transition-colors">
       <span class="material-symbols-outlined text-primary text-2xl">handyman</span>
       <span class="text-xl font-bold" style="font-family: Newsreader, serif">Mesterbud</span>
-    </div>
+    </button>
 
     <!-- Nav -->
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">

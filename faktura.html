@@ -78,6 +78,12 @@ tailwind.config = {
         class="px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm font-medium hover:bg-surface-container transition-colors active:scale-95 disabled:opacity-60">
         Gem kladde
       </button>
+      <button @click="downloadPDF()" :disabled="!faktura.id"
+        title="Download PDF"
+        class="px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm font-medium hover:bg-surface-container transition-colors active:scale-95 disabled:opacity-40 flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-base">download</span>
+        <span class="hidden sm:inline">PDF</span>
+      </button>
       <button @click="sendFaktura()" :disabled="saving"
         class="px-4 py-2 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary text-sm font-bold active:scale-95 transition-all shadow-md shadow-primary/20 disabled:opacity-60 flex items-center gap-1.5">
         <span x-show="saving" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
@@ -128,7 +134,8 @@ tailwind.config = {
   <div class="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
 
     <!-- LEFT: Form -->
-    <div class="flex-1 overflow-auto p-4 md:p-6 space-y-6 lg:max-w-2xl">
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
 
       <!-- Konverteret fra tilbud banner -->
       <div x-show="konverteretFra" x-cloak class="flex items-center gap-3 p-4 bg-primary/5 rounded-xl border border-primary/20">
@@ -451,6 +458,7 @@ tailwind.config = {
           <span class="material-symbols-outlined text-base">send</span>Send faktura
         </button>
       </div>
+      </div>
     </div>
 
     <!-- RIGHT: Live preview -->
@@ -720,6 +728,12 @@ function fakturaApp() {
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (!res.ok) {
+          const msg = res.status === 401 ? 'Log ud og ind igen – session udløbet' : (data.error || 'Fejl ved gemning');
+          this.visToast(msg, 'error');
+          this.saving = false;
+          return;
+        }
         if (data.faktura) {
           this.faktura.id = data.faktura.id;
           this.autoSaved = true;
@@ -831,11 +845,126 @@ function fakturaApp() {
       this.sendingRykker = false;
     },
 
-    downloadPDF() {
-      if (!this.faktura.id) { this.visToast('Gem fakturaen først', 'warning'); return; }
-      const siteUrl = window.location.origin;
-      // Åbn preview med PDF-flag – preview siden håndterer PDF-generering
-      window.open(`${siteUrl}/faktura-preview.html?id=${this.faktura.id}&pdf=1&selfToken=1`, '_blank');
+    async downloadPDF() {
+      if (!this.faktura.id) {
+        await this.gem('kladde');
+        if (!this.faktura.id) { this.visToast('Gem fejlede – prøv igen', 'error'); return; }
+      }
+      const f = this.faktura;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pW = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFillColor(162, 57, 0);
+      doc.rect(0, 0, pW, 36, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text(f.afsender?.firmanavn || 'Faktura', 14, 13);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(f.afsender?.adresse || '', 14, 20);
+      doc.text([f.afsender?.telefon, f.afsender?.email].filter(Boolean).join('  ·  '), 14, 26);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('FAKTURA', pW - 14, 11, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(f.id || '', pW - 14, 17, { align: 'right' });
+      doc.text('Dato: ' + (f.fakturadato || '—'), pW - 14, 23, { align: 'right' });
+      doc.text('Forfald: ' + (f.forfaldsdato || '—'), pW - 14, 29, { align: 'right' });
+
+      // Faktureret til
+      doc.setTextColor(89, 65, 56);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('FAKTURERET TIL', 14, 47);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(28, 28, 24);
+      doc.text(f.modtager?.navn || '—', 14, 54);
+      let y = 59;
+      if (f.modtager?.adresse) { doc.setFontSize(8); doc.setTextColor(89, 65, 56); doc.text(f.modtager.adresse, 14, y); y += 5; }
+      if (f.modtager?.cvr) { doc.setFontSize(8); doc.setTextColor(89, 65, 56); doc.text('CVR: ' + f.modtager.cvr, 14, y); y += 5; }
+
+      // Linje-tabel
+      const rows = (f.linjer || []).filter(l => l.beskrivelse).map(l => [
+        l.beskrivelse,
+        String(l.antal),
+        l.enhed,
+        new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(l.enhedspris || 0),
+        new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format((l.antal || 0) * (l.enhedspris || 0)),
+      ]);
+
+      doc.autoTable({
+        head: [['Beskrivelse', 'Antal', 'Enhed', 'Enhedspris', 'Beløb']],
+        body: rows,
+        startY: 70,
+        margin: { left: 14, right: 14 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [241, 237, 231], textColor: [89, 65, 56], fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { halign: 'right', cellWidth: 16 },
+          2: { halign: 'right', cellWidth: 14 },
+          3: { halign: 'right', cellWidth: 30 },
+          4: { halign: 'right', cellWidth: 30 },
+        },
+      });
+
+      let tY = doc.lastAutoTable.finalY + 8;
+      const fmt = (v) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v || 0);
+      const addRow = (label, val, bold = false) => {
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(28, 28, 24);
+        doc.text(label, pW - 60, tY);
+        doc.text(val, pW - 14, tY, { align: 'right' });
+        tY += 6;
+      };
+
+      addRow('Subtotal ekskl. moms', fmt(this.subtotal));
+      if ((f.aconto || 0) > 0) addRow('Aconto (fratrukket)', '− ' + fmt(f.aconto));
+      addRow('Moms (25%)', fmt(this.momsBeloeb));
+      tY += 2;
+      doc.setDrawColor(200, 180, 170);
+      doc.line(pW - 60, tY - 3, pW - 14, tY - 3);
+      addRow('Total inkl. moms', fmt(this.total), true);
+
+      // Betalingsoplysninger
+      if (f.afsender?.regNr || f.afsender?.mobilePay) {
+        tY += 6;
+        doc.setFillColor(247, 243, 237);
+        doc.roundedRect(14, tY, pW - 28, 20, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(89, 65, 56);
+        doc.text('BETALINGSOPLYSNINGER', 20, tY + 6);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(28, 28, 24);
+        if (f.afsender.regNr && f.afsender.kontoNr) doc.text(`Reg.nr. ${f.afsender.regNr}  |  Konto: ${f.afsender.kontoNr}`, 20, tY + 13);
+        if (f.afsender.mobilePay) doc.text(`MobilePay: ${f.afsender.mobilePay}`, 110, tY + 13);
+        tY += 26;
+      }
+
+      // Note
+      if (f.note) {
+        tY += 4;
+        doc.setFontSize(8);
+        doc.setTextColor(89, 65, 56);
+        doc.setFont('helvetica', 'italic');
+        doc.text(f.note, 14, tY, { maxWidth: pW - 28 });
+      }
+
+      const pageH = doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setTextColor(141, 113, 103);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Sendt via Mesterbud · mesterbud.dk', pW / 2, pageH - 8, { align: 'center' });
+
+      doc.save(`Faktura-${f.id}.pdf`);
     },
 
     visToast(msg, icon = 'check_circle') {
