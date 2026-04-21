@@ -142,6 +142,33 @@
     </style>
 </head>
 <body class="bg-surface text-on-surface selection:bg-primary-fixed">
+<script>
+  // Fang Netlify Identity tokens i URL hash og behandl dem
+  (async () => {
+    const hash = window.location.hash;
+    const confirmMatch = hash.match(/confirmation_token=([^&]+)/);
+    const recoveryMatch = hash.match(/recovery_token=([^&]+)/);
+    if (confirmMatch) {
+      try {
+        const res = await fetch('/.netlify/identity/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: confirmMatch[1], type: 'signup' })
+        });
+        const data = await res.json();
+        if (data.access_token) {
+          localStorage.setItem('gotrue-session', JSON.stringify(data));
+          window.location.href = '/dashboard.html';
+          return;
+        }
+      } catch(e) {}
+      window.location.href = '/login.html';
+    } else if (recoveryMatch) {
+      sessionStorage.setItem('recovery_token', recoveryMatch[1]);
+      window.location.href = '/login.html';
+    }
+  })();
+</script>
 <!-- TopNavBar -->
 <nav class="fixed top-0 w-full z-50 bg-stone-50/80 dark:bg-stone-900/80 backdrop-blur-xl shadow-sm dark:shadow-none" x-data="{ mobileOpen: false }">
 <div class="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
