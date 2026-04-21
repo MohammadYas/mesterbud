@@ -636,18 +636,18 @@ tailwind.config = {
           <span class="material-symbols-outlined text-primary text-lg">settings</span>
           Betingelser
         </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="space-y-4">
           <div>
             <label class="field-label">Betalingsbetingelser</label>
             <select x-model="tilbud.betalingsbetingelser" class="field-input">
-              <option value="netto8">Netto 8 dage – kunden betaler inden 8 dage</option>
-              <option value="netto14">Netto 14 dage – kunden betaler inden 14 dage</option>
-              <option value="netto30">Netto 30 dage – kunden betaler inden 30 dage</option>
-              <option value="straks">Betales straks – ved levering/udførelse</option>
+              <option value="netto8">Netto 8 dage</option>
+              <option value="netto14">Netto 14 dage</option>
+              <option value="netto30">Netto 30 dage</option>
+              <option value="straks">Betales straks</option>
             </select>
             <p class="text-xs text-on-surface-variant mt-1">Fristen regnes fra fakturadatoen.</p>
           </div>
-          <div class="sm:col-span-2">
+          <div>
             <label class="field-label">Note til kunden (valgfrit)</label>
             <textarea x-model="tilbud.note" rows="3" class="field-textarea" placeholder="Eventuelle noter, forbehold eller særlige betingelser..."></textarea>
           </div>

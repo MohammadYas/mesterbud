@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <meta name="theme-color" content="#a23900">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
 tailwind.config = {
@@ -29,13 +29,42 @@ tailwind.config = {
 }
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; font-family: 'Material Symbols Outlined'; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
   h1, h2, h3 { font-family: 'Newsreader', serif; }
   [x-cloak] { display: none !important; }
   .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
   .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
   .field-textarea { @apply w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none; }
+  /* Linjer grid – fixed columns på desktop */
+  .linjer-row {
+    background: #f7f3ed;
+    border: 1px solid rgba(225,191,179,0.3);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+  }
+  .linjer-header { display: none; }
+  @media (min-width: 1024px) {
+    .linjer-header {
+      display: grid;
+      grid-template-columns: 1fr 80px 100px 120px 32px;
+      gap: 0.5rem;
+      padding: 0 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .linjer-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 100px 120px 32px;
+      gap: 0.5rem;
+      align-items: center;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+    }
+    .linjer-inner { display: contents; }
+    .linjer-subtotal { display: none; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -295,25 +324,26 @@ tailwind.config = {
           <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
           Fakturadetaljer
         </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div class="space-y-4 mb-4">
           <div>
             <label class="field-label">Fakturanummer</label>
             <div class="relative">
-              <input x-model="faktura.id" type="text" class="field-input pr-8" placeholder="Auto-genereres"/>
+              <input x-model="faktura.id" type="text" class="field-input pr-8" placeholder="Auto-genereres (MB-F-2025-001)"/>
               <button x-show="faktura.id" type="button" @click="faktura.id = ''" title="Nulstil til auto"
                 class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary">
                 <span class="material-symbols-outlined text-base">close</span>
               </button>
             </div>
-            <p class="text-xs text-on-surface-variant mt-1">Tomt = auto (MB-F-2025-001)</p>
           </div>
-          <div>
-            <label class="field-label">Fakturadato</label>
-            <input x-model="faktura.fakturadato" type="date" class="field-input"/>
-          </div>
-          <div>
-            <label class="field-label">Forfaldsdato</label>
-            <input x-model="faktura.forfaldsdato" type="date" class="field-input"/>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Fakturadato</label>
+              <input x-model="faktura.fakturadato" type="date" class="field-input"/>
+            </div>
+            <div>
+              <label class="field-label">Forfaldsdato</label>
+              <input x-model="faktura.forfaldsdato" type="date" class="field-input"/>
+            </div>
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -344,30 +374,30 @@ tailwind.config = {
           Faktura-linjer
         </h2>
 
-        <!-- Column headers -->
-        <div class="hidden lg:grid grid-cols-12 gap-2 mb-2 px-1">
-          <div class="col-span-5 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Antal</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-center">Enhed</div>
-          <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
-          <div class="col-span-1"></div>
+        <!-- Desktop header -->
+        <div class="linjer-header">
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Beskrivelse</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Antal</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Enhed</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-on-surface-variant text-right">Pris ekskl.</div>
+          <div></div>
         </div>
 
         <div class="space-y-3 lg:space-y-2">
           <template x-for="(linje, i) in faktura.linjer" :key="i">
-            <div class="bg-surface-container-low lg:bg-transparent rounded-lg lg:rounded-none border border-outline-variant/30 lg:border-0 p-3 lg:p-0 lg:grid lg:grid-cols-12 lg:gap-2 lg:items-center">
-              <div class="lg:col-span-5 mb-2 lg:mb-0">
+            <div class="linjer-row">
+              <div class="mb-2 lg:mb-0">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Beskrivelse</label>
                 <input x-model="linje.beskrivelse" type="text" placeholder="Beskrivelse" class="field-input"/>
               </div>
-              <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 lg:contents">
-                <div class="lg:col-span-2">
+              <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 linjer-inner">
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Antal</label>
-                  <input x-model.number="linje.antal" type="number" min="0" step="0.01" placeholder="1" class="field-input text-center"/>
+                  <input x-model.number="linje.antal" type="number" min="0" step="0.01" placeholder="1" class="field-input text-right"/>
                 </div>
-                <div class="lg:col-span-2">
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Enhed</label>
-                  <select x-model="linje.enhed" class="field-input text-center">
+                  <select x-model="linje.enhed" class="field-input">
                     <option value="stk">stk</option>
                     <option value="time">time</option>
                     <option value="m²">m²</option>
@@ -378,18 +408,18 @@ tailwind.config = {
                     <option value="ls">ls</option>
                   </select>
                 </div>
-                <div class="lg:col-span-2">
+                <div>
                   <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1 block lg:hidden">Pris ekskl.</label>
                   <input x-model.number="linje.enhedspris" type="number" min="0" step="0.01" placeholder="0,00" class="field-input text-right"/>
                 </div>
-                <div class="lg:col-span-1 flex items-end lg:items-center justify-center">
-                  <button @click="fjernLinje(i)" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors">
+                <div class="flex items-end lg:items-center justify-center">
+                  <button @click="fjernLinje(i)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors" title="Fjern linje">
                     <span class="material-symbols-outlined text-base">remove_circle</span>
                   </button>
                 </div>
               </div>
-              <div class="mt-1.5 text-right text-xs text-on-surface-variant lg:hidden" x-show="linje.antal && linje.enhedspris">
-                = <span x-text="formatKr(linje.antal * linje.enhedspris)"></span>
+              <div class="mt-1.5 text-right text-xs text-on-surface-variant linjer-subtotal" x-show="linje.antal && linje.enhedspris">
+                <span x-text="'= ' + formatKr(linje.antal * linje.enhedspris)"></span>
               </div>
             </div>
           </template>
