@@ -38,15 +38,52 @@ tailwind.config = {
 <body class="bg-surface-container-low min-h-screen flex flex-col items-center justify-center p-4">
 
 <script>
-  const s = localStorage.getItem('gotrue-session');
-  if (s) {
-    try {
-      const t = JSON.parse(s);
-      const p = JSON.parse(atob(t.access_token.split('.')[1]));
-      if (p.exp > Date.now() / 1000) window.location.href = '/dashboard.html';
-    } catch(e) { localStorage.removeItem('gotrue-session'); }
-  }
+  // Håndtér email-bekræftelse token fra URL hash
+  (async () => {
+    const hash = window.location.hash;
+    const tokenMatch = hash.match(/confirmation_token=([^&]+)/);
+    if (tokenMatch) {
+      try {
+        const res = await fetch('/.netlify/identity/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenMatch[1], type: 'signup' })
+        });
+        const data = await res.json();
+        if (data.access_token) {
+          localStorage.setItem('gotrue-session', JSON.stringify(data));
+          window.location.href = '/dashboard.html';
+        } else {
+          // Ryd hash og vis besked
+          history.replaceState(null, '', window.location.pathname);
+          document.getElementById('confirm-msg').textContent = 'Bekræftelseslink er udløbet eller allerede brugt. Log ind nedenfor.';
+          document.getElementById('confirm-msg').style.display = 'block';
+        }
+      } catch(e) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+      return;
+    }
+
+    // Håndtér recovery token (glemt adgangskode)
+    const recoveryMatch = hash.match(/recovery_token=([^&]+)/);
+    if (recoveryMatch) {
+      sessionStorage.setItem('recovery_token', recoveryMatch[1]);
+      history.replaceState(null, '', window.location.pathname);
+    }
+
+    // Allerede logget ind?
+    const s = localStorage.getItem('gotrue-session');
+    if (s) {
+      try {
+        const t = JSON.parse(s);
+        const p = JSON.parse(atob(t.access_token.split('.')[1]));
+        if (p.exp > Date.now() / 1000) window.location.href = '/dashboard.html';
+      } catch(e) { localStorage.removeItem('gotrue-session'); }
+    }
+  })();
 </script>
+<div id="confirm-msg" style="display:none;background:#d1fae5;color:#065f46;padding:12px 20px;border-radius:8px;text-align:center;margin-bottom:16px;font-size:14px;max-width:420px;margin:0 auto 16px;"></div>
 
 <div x-data="{
   view: 'login',
@@ -73,7 +110,14 @@ tailwind.config = {
         localStorage.setItem('gotrue-session', JSON.stringify(data));
         window.location.href = '/dashboard.html';
       } else {
-        this.error = data.error_description || 'Forkert e-mail eller adgangskode.';
+        const msg = data.error_description || data.msg || '';
+        if (msg.toLowerCase().includes('email not confirmed')) {
+          this.error = 'Din email er ikke bekræftet endnu. Tjek din indbakke (og spam-mappen) for bekræftelsesmailen.';
+        } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('no user')) {
+          this.error = 'Forkert e-mail eller adgangskode.';
+        } else {
+          this.error = msg || 'Forkert e-mail eller adgangskode.';
+        }
       }
     } catch(e) {
       this.error = 'Netværksfejl – prøv igen.';
