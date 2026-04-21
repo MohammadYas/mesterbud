@@ -91,6 +91,9 @@ tailwind.config = {
   password: '',
   loading: false,
   error: '',
+  emailNotConfirmed: false,
+  resendLoading: false,
+  resendSent: false,
   resetEmail: '',
   resetLoading: false,
   resetSent: false,
@@ -112,7 +115,8 @@ tailwind.config = {
       } else {
         const msg = data.error_description || data.msg || '';
         if (msg.toLowerCase().includes('email not confirmed')) {
-          this.error = 'Din email er ikke bekræftet endnu. Tjek din indbakke (og spam-mappen) for bekræftelsesmailen.';
+          this.emailNotConfirmed = true;
+          this.error = '';
         } else if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('no user')) {
           this.error = 'Forkert e-mail eller adgangskode.';
         } else {
@@ -123,6 +127,19 @@ tailwind.config = {
       this.error = 'Netværksfejl – prøv igen.';
     }
     this.loading = false;
+  },
+
+  async resendConfirmation() {
+    this.resendLoading = true;
+    try {
+      await fetch('/.netlify/identity/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: this.email })
+      });
+      this.resendSent = true;
+    } catch(e) {}
+    this.resendLoading = false;
   },
 
   async sendReset() {
@@ -161,6 +178,25 @@ tailwind.config = {
     <div x-show="error" x-cloak class="bg-error-container text-on-error-container rounded-lg px-4 py-3 text-sm mb-6 flex items-start gap-2">
       <span class="material-symbols-outlined text-base mt-0.5">error</span>
       <span x-text="error"></span>
+    </div>
+
+    <!-- Email ikke bekræftet -->
+    <div x-show="emailNotConfirmed" x-cloak class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-4 text-sm mb-6">
+      <div class="flex items-start gap-2 mb-3">
+        <span class="material-symbols-outlined text-amber-600 text-base mt-0.5">mark_email_unread</span>
+        <span class="text-amber-800 font-medium">Din email er ikke bekræftet endnu. Tjek din indbakke og spam-mappe.</span>
+      </div>
+      <div x-show="!resendSent">
+        <button type="button" @click="resendConfirmation()"
+          :disabled="resendLoading"
+          class="w-full py-2 rounded-lg border border-amber-300 bg-amber-100 text-amber-800 font-semibold text-sm hover:bg-amber-200 transition-colors">
+          <span x-show="!resendLoading">Send bekræftelsesmail igen</span>
+          <span x-show="resendLoading" x-cloak>Sender...</span>
+        </button>
+      </div>
+      <div x-show="resendSent" x-cloak class="text-center text-amber-700 font-medium">
+        ✓ Mail sendt – tjek din indbakke
+      </div>
     </div>
 
     <form @submit.prevent="login" class="space-y-5">
