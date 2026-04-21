@@ -208,11 +208,11 @@ tailwind.config = {
       </div>
     </section>
 
-    <!-- SEKTION 2: Abonnement -->
+    <!-- SEKTION 2: Mit abonnement -->
     <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
         <span class="material-symbols-outlined text-primary">credit_card</span>
-        <h2 class="font-bold text-base">Abonnement</h2>
+        <h2 class="font-bold text-base">Mit abonnement</h2>
       </div>
       <div class="p-6">
 
@@ -220,14 +220,44 @@ tailwind.config = {
         <div class="flex items-center justify-between mb-6 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
           <div>
             <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Aktiv plan</p>
-            <p class="font-bold text-lg" x-text="planLabel(plan)"></p>
-            <p x-show="naesteBetaling" class="text-sm text-on-surface-variant mt-1" x-text="'Næste betaling: ' + naesteBetaling"></p>
-            <p x-show="plan === 'trial'" class="text-sm text-on-surface-variant mt-1">14 dages gratis prøveperiode</p>
+            <div class="flex items-center gap-2 mb-1">
+              <p class="font-bold text-lg" x-text="planLabel(plan)"></p>
+              <!-- Plan badge -->
+              <span x-show="plan === 'pro'" class="flex items-center gap-1 bg-primary text-on-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                <span class="material-symbols-outlined text-xs">workspace_premium</span>Pro
+              </span>
+              <span x-show="plan === 'basis'" class="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-0.5 rounded-full">Basis</span>
+              <span x-show="plan === 'trial'" class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">Trial</span>
+              <span x-show="plan === 'none'" class="bg-error-container text-on-error-container text-xs font-bold px-2 py-0.5 rounded-full">Udløbet</span>
+            </div>
+            <!-- Status linje -->
+            <p x-show="naesteBetaling" class="text-sm text-on-surface-variant" x-text="'Næste betaling: ' + naesteBetaling"></p>
+            <p x-show="plan === 'trial' && dageTilbage !== null" class="text-sm text-on-surface-variant" x-text="'Prøveperiode: ' + dageTilbage + ' dage tilbage'"></p>
+            <p x-show="plan === 'trial' && dageTilbage === null" class="text-sm text-on-surface-variant">14 dages gratis prøveperiode</p>
+            <p x-show="stripeStatus && plan !== 'trial'" class="text-sm text-on-surface-variant mt-0.5" x-text="'Stripe-status: ' + stripeStatus"></p>
           </div>
-          <span :class="plan === 'none' ? 'bg-error-container text-on-error-container' : 'bg-green-100 text-green-800'"
-            class="px-3 py-1 rounded-full text-xs font-bold"
-            x-text="plan === 'none' ? 'Udløbet' : plan === 'trial' ? 'Prøveperiode' : 'Aktiv'">
+          <span :class="{
+            'bg-error-container text-on-error-container': plan === 'none',
+            'bg-blue-100 text-blue-800': plan === 'trial',
+            'bg-green-100 text-green-800': plan === 'basis' || plan === 'pro'
+          }" class="px-3 py-1 rounded-full text-xs font-bold flex-shrink-0"
+          x-text="plan === 'none' ? 'Opsagt' : plan === 'trial' ? 'Prøveperiode' : 'Aktiv'">
           </span>
+        </div>
+
+        <!-- Administrer / Opgrader knapper for eksisterende kunder -->
+        <div x-show="plan === 'basis' || plan === 'pro'" class="flex flex-col sm:flex-row gap-3 mb-6">
+          <button @click="aabKundePortal()"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm hover:opacity-90 transition-all active:scale-95">
+            <span class="material-symbols-outlined text-base">open_in_new</span>
+            Administrer abonnement
+          </button>
+          <button x-show="plan === 'basis'" @click="skiftPlan('pro')" :disabled="checkoutLoading"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-primary text-primary font-bold text-sm hover:bg-primary/5 transition-all active:scale-95 disabled:opacity-60">
+            <span x-show="checkoutLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            <span class="material-symbols-outlined text-base" x-show="!checkoutLoading">upgrade</span>
+            Opgrader til Pro
+          </button>
         </div>
 
         <!-- Plan comparison -->
@@ -287,18 +317,10 @@ tailwind.config = {
           </div>
         </div>
 
-        <!-- Manage existing -->
-        <div x-show="plan === 'basis' || plan === 'pro'" class="flex flex-col sm:flex-row gap-3">
-          <button @click="aabKundePortal()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border border-outline-variant bg-surface-container text-sm font-medium hover:bg-surface-container-high transition-colors active:scale-95">
-            <span class="material-symbols-outlined text-base">open_in_new</span>
-            Administrér abonnement
-          </button>
-          <button @click="aabKundePortal()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border border-error text-error text-sm font-medium hover:bg-error-container transition-colors active:scale-95">
-            <span class="material-symbols-outlined text-base">cancel</span>
-            Annuller abonnement
-          </button>
+        <!-- Stripe Customer Portal note -->
+        <div x-show="plan === 'basis' || plan === 'pro'" class="text-xs text-on-surface-variant flex items-center gap-1.5 mt-2">
+          <span class="material-symbols-outlined text-sm">info</span>
+          Kortskift, fakturaer og opsigelse håndteres i Stripe Customer Portal.
         </div>
       </div>
     </section>
@@ -369,6 +391,9 @@ function kontoApp() {
   return {
     plan: 'trial',
     naesteBetaling: '',
+    trialSlutter: null,
+    dageTilbage: null,
+    stripeStatus: null,
     virksomhed: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', logo: '' },
     gemmerVirksomhed: false,
     gemtVirksomhed: false,
@@ -392,6 +417,9 @@ function kontoApp() {
           const u = await res.json();
           this.plan = u.plan || 'trial';
           this.naesteBetaling = u.naesteBetaling || '';
+          this.trialSlutter = u.trialSlutter || null;
+          this.dageTilbage = u.dageTilbage ?? null;
+          this.stripeStatus = u.stripeStatus || null;
           if (u.virksomhed) this.virksomhed = { ...this.virksomhed, ...u.virksomhed };
         }
       } catch(e) {}
@@ -448,7 +476,8 @@ function kontoApp() {
           headers: { 'Authorization': 'Bearer ' + s.access_token }
         });
         const data = await res.json();
-        if (data.url) window.location.href = data.url;
+        if (data.url) window.open(data.url, '_blank');
+        else this.visToast('Ingen Stripe-kunde fundet – opret abonnement først', 'error');
       } catch(e) { this.visToast('Netværksfejl', 'error'); }
     },
 

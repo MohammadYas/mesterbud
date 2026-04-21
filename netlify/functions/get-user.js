@@ -30,7 +30,20 @@ exports.handler = async (event, context) => {
       await store.set(`profil/${userId}`, JSON.stringify(profil));
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify(profil) };
+    // Beregn dage tilbage af prøveperiode
+    const dageTilbage = profil.trialSlutter
+      ? Math.max(0, Math.ceil((new Date(profil.trialSlutter) - new Date()) / 86400000))
+      : null;
+
+    const response = {
+      ...profil,
+      plan: profil.plan || 'basis',
+      trialSlutter: profil.trialSlutter || null,
+      stripeStatus: profil.stripeStatus || null,
+      dageTilbage,
+    };
+
+    return { statusCode: 200, headers, body: JSON.stringify(response) };
   } catch (e) {
     console.error('get-user fejl:', e);
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Serverfejl' }) };

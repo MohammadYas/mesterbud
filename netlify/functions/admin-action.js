@@ -16,7 +16,7 @@ const { adminGuard, ADMIN_HEADERS, ADMIN_EMAIL } = require('./_admin-auth');
 const { logActivity, logError, clearErrorLog } = require('./_admin-log');
 const { parseBody, sanitizeString } = require('./_security');
 
-const GYLDIGE_ACTIONS = ['give_pro', 'cancel_sub', 'delete_user', 'clear_error_log', 'send_test_email'];
+const GYLDIGE_ACTIONS = ['give_pro', 'give_basis', 'cancel_sub', 'delete_user', 'clear_error_log', 'send_test_email'];
 
 exports.handler = async (event, context) => {
   const denied = adminGuard(event, context);
@@ -57,6 +57,27 @@ exports.handler = async (event, context) => {
       });
 
       return ok({ message: `Pro aktiveret til ${udloeber.slice(0, 10)}` });
+    }
+
+    // ── give_basis: sæt bruger til Basis-plan ────────────────────────────
+    if (action === 'give_basis') {
+      if (!targetUserId) return err('Mangler userId');
+
+      const profilKey = `profil/${targetUserId}`;
+      const raw = await store.get(profilKey);
+      const profil = raw ? JSON.parse(raw) : {};
+
+      profil.plan = 'basis';
+      profil.proGratis = false;
+      profil.proGratisUdloeber = null;
+      profil.opdateret = new Date().toISOString();
+      await store.set(profilKey, JSON.stringify(profil));
+
+      await logActivity('admin_give_basis', `Admin satte ${targetEmail || targetUserId} til Basis-plan`, {
+        userId: targetUserId, email: targetEmail, adminEmail: adminUser.email,
+      });
+
+      return ok({ message: 'Plan sat til Basis' });
     }
 
     // ── cancel_sub: annullér Stripe-abonnement ────────────────────────────

@@ -532,9 +532,13 @@ tailwind.config = {
       <div class="space-y-2 pt-2 border-t border-outline-variant/20">
         <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Handlinger</p>
         <div class="flex flex-col gap-2">
-          <button @click="confirmAction({type:'give_pro',userId:selectedUser.id,email:selectedUser.email,msg:`Giv ${selectedUser.email} 30 dages gratis Pro-adgang?`,label:'Giv gratis Pro'})"
-            class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-outline-variant font-bold text-sm hover:bg-surface-container transition-colors active:scale-95">
-            <span class="material-symbols-outlined text-base text-primary">workspace_premium</span>Giv 30 dages gratis Pro
+          <button @click="confirmAction({type:'give_pro',userId:selectedUser.id,email:selectedUser.email,msg:`Giv ${selectedUser.email} 30 dages gratis Pro-adgang?`,label:'Giv Pro'})"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-orange-400 bg-orange-50 text-orange-800 font-bold text-sm hover:bg-orange-100 transition-colors active:scale-95">
+            <span class="material-symbols-outlined text-base text-orange-600">workspace_premium</span>Giv Pro
+          </button>
+          <button @click="confirmAction({type:'give_basis',userId:selectedUser.id,email:selectedUser.email,msg:`Sæt ${selectedUser.email} til Basis-plan?`,label:'Sæt til Basis'})"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-outline-variant bg-surface-container text-on-surface-variant font-bold text-sm hover:bg-surface-container-high transition-colors active:scale-95">
+            <span class="material-symbols-outlined text-base">assignment</span>Sæt til Basis
           </button>
           <button x-show="selectedUser?.stripeCustomerId"
             @click="confirmAction({type:'cancel_sub',userId:selectedUser.id,email:selectedUser.email,msg:`Annuller abonnement for ${selectedUser.email}? Brugeren mister adgang.`,label:'Annuller abonnement',danger:true})"

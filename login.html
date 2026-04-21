@@ -132,7 +132,7 @@ tailwind.config = {
   async resendConfirmation() {
     this.resendLoading = true;
     try {
-      await fetch('/.netlify/identity/recover', {
+      await fetch('/api/resend-bekraeftelse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: this.email })
