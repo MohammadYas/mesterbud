@@ -107,6 +107,16 @@
   to = "/.netlify/functions/resend-bekraeftelse"
   status = 200
 
+[[redirects]]
+  from = "/api/delete-account"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-send-mail"
+  to = "/.netlify/functions/admin-send-mail"
+  status = 200
+
 # Clean URL redirects (ingen .html i URL)
 [[redirects]]
   from = "/dashboard"

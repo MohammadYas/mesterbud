@@ -356,7 +356,33 @@ tailwind.config = {
     </section>
 
     <!-- Danger zone -->
-    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+    <section x-data="{
+      sletDialog1: false,
+      sletDialog2: false,
+      sletInput: '',
+      sletLoading: false,
+      async sletKonto() {
+        if (this.sletInput !== 'SLET') return;
+        this.sletLoading = true;
+        try {
+          const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+          const res = await fetch('/api/delete-account', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + s.access_token }
+          });
+          if (res.ok) {
+            localStorage.removeItem('gotrue-session');
+            window.location.href = '/login.html';
+          } else {
+            const d = await res.json().catch(() => ({}));
+            alert('Fejl: ' + (d.error || 'Sletning fejlede'));
+          }
+        } catch(e) {
+          alert('Netværksfejl – prøv igen');
+        }
+        this.sletLoading = false;
+      }
+    }" class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center gap-3">
         <span class="material-symbols-outlined text-error">warning</span>
         <h2 class="font-bold text-base text-error">Farezone</h2>
@@ -365,11 +391,59 @@ tailwind.config = {
         <div class="flex items-center justify-between">
           <div>
             <p class="font-medium text-sm">Slet konto</p>
-            <p class="text-xs text-on-surface-variant">Alle data slettes permanent og kan ikke gendannes.</p>
+            <p class="text-xs text-on-surface-variant">Alle tilbud, data og abonnement slettes permanent og kan ikke gendannes.</p>
           </div>
-          <button class="px-4 py-2 rounded-lg border-2 border-error text-error text-sm font-bold hover:bg-error-container transition-colors active:scale-95">
+          <button @click="sletDialog1 = true" class="px-4 py-2 rounded-lg border-2 border-error text-error text-sm font-bold hover:bg-error-container transition-colors active:scale-95">
             Slet konto
           </button>
+        </div>
+      </div>
+
+      <!-- Dialog 1: Første bekræftelse -->
+      <div x-show="sletDialog1" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <div class="bg-surface-container-lowest rounded-xl shadow-2xl p-8 max-w-sm w-full border border-outline-variant/20" @click.stop>
+          <div class="w-14 h-14 rounded-full bg-error-container flex items-center justify-center mb-5 mx-auto">
+            <span class="material-symbols-outlined text-error text-2xl">delete_forever</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2 text-center">Slet din konto?</h3>
+          <p class="text-on-surface-variant text-sm mb-2 text-center">Dette vil <strong>permanent slette</strong>:</p>
+          <ul class="text-sm text-on-surface-variant mb-6 space-y-1 list-disc list-inside">
+            <li>Alle dine tilbud og kladder</li>
+            <li>Din virksomhedsprofil og indstillinger</li>
+            <li>Dit abonnement og adgang til Mesterbud</li>
+          </ul>
+          <p class="text-sm font-bold text-error text-center mb-6">Handlingen kan ikke fortrydes.</p>
+          <div class="flex gap-3">
+            <button @click="sletDialog1 = false" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all">Annuller</button>
+            <button @click="sletDialog1 = false; sletDialog2 = true; sletInput = ''"
+              class="flex-1 py-3 rounded-lg bg-error text-white font-bold text-sm active:scale-95 transition-all">
+              Fortsæt →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dialog 2: Anden bekræftelse – skriv SLET -->
+      <div x-show="sletDialog2" x-cloak class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <div class="bg-surface-container-lowest rounded-xl shadow-2xl p-8 max-w-sm w-full border border-outline-variant/20" @click.stop>
+          <h3 class="text-xl font-bold mb-3">Bekræft sletning</h3>
+          <p class="text-sm text-on-surface-variant mb-5">
+            Skriv <strong class="text-error font-mono">SLET</strong> i feltet nedenfor for at bekræfte permanent sletning af din konto.
+          </p>
+          <input x-model="sletInput" type="text" placeholder="Skriv SLET her"
+            @keydown.enter="sletInput === 'SLET' && sletKonto()"
+            class="w-full h-11 border-2 rounded-lg px-4 text-sm font-mono mb-5 focus:outline-none transition-colors"
+            :class="sletInput === 'SLET' ? 'border-error bg-error-container/20' : 'border-outline-variant bg-surface-container-low'"/>
+          <div class="flex gap-3">
+            <button @click="sletDialog2 = false; sletInput = ''" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all">Annuller</button>
+            <button @click="sletKonto()" :disabled="sletInput !== 'SLET' || sletLoading"
+              class="flex-1 py-3 rounded-lg bg-error text-white font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40">
+              <span x-show="sletLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              Slet konto
+            </button>
+          </div>
         </div>
       </div>
     </section>

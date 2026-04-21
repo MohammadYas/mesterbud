@@ -83,6 +83,9 @@ tailwind.config = {
     <button @click="setView('system')" :class="view==='system'?'active':''" class="sidebar-link">
       <span class="material-symbols-outlined text-xl">monitor_heart</span>System
     </button>
+    <button @click="setView('mails')" :class="view==='mails'?'active':''" class="sidebar-link">
+      <span class="material-symbols-outlined text-xl">send</span>Send mails
+    </button>
   </nav>
   <div class="p-4 border-t border-outline-variant text-xs text-on-surface-variant">
     <p class="font-medium truncate" x-text="adminEmail"></p>
@@ -100,7 +103,7 @@ tailwind.config = {
     <button @click="sidebarOpen=!sidebarOpen" class="md:hidden text-on-surface-variant">
       <span class="material-symbols-outlined">menu</span>
     </button>
-    <h1 class="text-lg font-bold flex-1" x-text="{overblik:'Overblik',brugere:'Brugere',oekonomi:'Økonomi',aktivitet:'Tilbud & aktivitet',system:'System'}[view]"></h1>
+    <h1 class="text-lg font-bold flex-1" x-text="{overblik:'Overblik',brugere:'Brugere',oekonomi:'Økonomi',aktivitet:'Tilbud & aktivitet',system:'System',mails:'Send mails'}[view]"></h1>
     <!-- Session countdown -->
     <div class="text-xs text-on-surface-variant flex items-center gap-1" x-show="sessionMinLeft <= 5" x-cloak>
       <span class="material-symbols-outlined text-sm text-error">timer</span>
@@ -479,6 +482,70 @@ tailwind.config = {
     </div>
   </div>
 
+  <!-- ── MAILS ──────────────────────────────────────────────────────── -->
+  <div x-show="!pageLoading && view==='mails'" x-cloak class="p-6 md:p-8 max-w-2xl space-y-6">
+    <div class="metric-card space-y-5">
+      <h3 class="font-bold text-base flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">send</span>
+        Send email til brugere
+      </h3>
+
+      <!-- Modtager -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">Modtager</label>
+        <div class="flex gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" x-model="mailTil" value="alle" class="accent-primary"/>
+            <span class="text-sm font-medium">Alle brugere</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" x-model="mailTil" value="enkelt" class="accent-primary"/>
+            <span class="text-sm font-medium">Specifik email</span>
+          </label>
+        </div>
+        <input x-show="mailTil === 'enkelt'" x-model="mailEmail" type="email" placeholder="bruger@email.dk"
+          class="mt-2 w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        <p x-show="mailTil === 'alle'" class="mt-2 text-xs text-on-surface-variant flex items-center gap-1">
+          <span class="material-symbols-outlined text-amber-600 text-sm">warning</span>
+          Maks. 1 masseudsendelse per 10 minutter.
+        </p>
+      </div>
+
+      <!-- Emne -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">Emne</label>
+        <input x-model="mailEmne" type="text" placeholder="F.eks. Ny funktion i Mesterbud"
+          class="w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+      </div>
+
+      <!-- Besked -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5">Besked</label>
+        <textarea x-model="mailBesked" rows="6" placeholder="Skriv din besked her..."
+          class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none"></textarea>
+        <p class="text-xs text-on-surface-variant mt-1" x-text="mailBesked.length + '/5000 tegn'"></p>
+      </div>
+
+      <!-- Resultat -->
+      <div x-show="mailResultat" class="p-3 rounded-lg text-sm font-bold"
+        :class="mailFejl ? 'bg-error-container text-on-error-container' : 'bg-green-100 text-green-800'"
+        x-text="mailResultat"></div>
+
+      <!-- Send knap -->
+      <div class="flex items-center gap-4">
+        <button @click="sendMail()" :disabled="mailSender || !mailEmne || !mailBesked || (mailTil==='enkelt' && !mailEmail)"
+          class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+          <span x-show="mailSender" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+          <span class="material-symbols-outlined text-sm" x-show="!mailSender">send</span>
+          <span x-text="mailSender ? 'Sender...' : (mailTil === 'alle' ? 'Send til alle brugere' : 'Send email')"></span>
+        </button>
+        <button @click="mailEmne=''; mailBesked=''; mailResultat=''; mailFejl=false" class="text-sm text-on-surface-variant hover:text-on-surface font-medium">
+          Nulstil
+        </button>
+      </div>
+    </div>
+  </div>
+
 </main><!-- /main -->
 
 <!-- ── BRUGER DETALJE MODAL ──────────────────────────────────────── -->
@@ -625,6 +692,15 @@ function adminApp() {
     // Toast
     toast: '',
 
+    // Mails
+    mailTil: 'enkelt',
+    mailEmail: '',
+    mailEmne: '',
+    mailBesked: '',
+    mailSender: false,
+    mailResultat: '',
+    mailFejl: false,
+
     // Lag 5: Session timeout (30 min)
     lastActivity: Date.now(),
     sessionMinLeft: 30,
@@ -660,6 +736,7 @@ function adminApp() {
       if (v === 'oekonomi' && !this.revenue) await this.loadRevenue();
       if (v === 'aktivitet' && !this.activity) await this.loadActivity();
       if (v === 'system') await this.loadSystem();
+      if (v === 'mails') this.mailResultat = '';
     },
 
     async refreshData() {
@@ -849,6 +926,24 @@ function adminApp() {
     formatKr(n) { return new Intl.NumberFormat('da-DK', { style:'currency', currency:'DKK', maximumFractionDigits:0 }).format(n||0); },
     formatDato(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('da-DK', { day:'numeric', month:'short', year:'numeric' }); },
     formatTs(iso) { if (!iso) return '—'; return new Date(iso).toLocaleString('da-DK', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); },
+
+    async sendMail() {
+      if (!this.mailEmne || !this.mailBesked) return;
+      const til = this.mailTil === 'alle' ? 'alle' : this.mailEmail;
+      if (!til) return;
+      this.mailSender = true;
+      this.mailResultat = '';
+      this.mailFejl = false;
+      try {
+        const data = await this.post('admin-send-mail', { til, emne: this.mailEmne, besked: this.mailBesked });
+        this.mailResultat = `✓ Sendt til ${data.antal} modtager(e)`;
+        this.mailFejl = false;
+      } catch (e) {
+        this.mailResultat = 'Fejl: ' + e.message;
+        this.mailFejl = true;
+      }
+      this.mailSender = false;
+    },
 
     showToast(msg) { this.toast = msg; setTimeout(() => this.toast = '', 3500); },
 

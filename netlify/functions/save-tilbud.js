@@ -27,8 +27,8 @@ exports.handler = async (event, context) => {
     try {
       const body = parseBody(event);
       if (!body) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ugyldig JSON' }) };
-      const id = sanitizeString(body.id, 20);
-      if (!id || !/^MB-\d{4}-\d{3,6}$/.test(id)) {
+      const id = sanitizeString(body.id, 30);
+      if (!id || id.length < 1 || !/^[\w\-\.]+$/.test(id)) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Ugyldigt tilbuds-ID' }) };
       }
       await store.delete(`tilbud/${userId}/${id}`);
@@ -48,7 +48,7 @@ exports.handler = async (event, context) => {
 
     // Validér tilbuds-top-niveau
     const { valid, errors, data: top } = validateSchema(body, {
-      id:          { type: 'string', maxLen: 20 },
+      id:          { type: 'string', maxLen: 30 },
       titel:       { type: 'string', maxLen: 200 },
       status:      { type: 'string', enum: ['kladde', 'sendt', 'accepteret', 'afvist'], default: 'kladde' },
       noter:       { type: 'string', maxLen: 2000 },

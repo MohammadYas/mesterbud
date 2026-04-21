@@ -92,20 +92,59 @@ tailwind.config = {
     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
     <div class="bg-surface-container-lowest w-full sm:max-w-2xl rounded-t-2xl sm:rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto">
       <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant sticky top-0 bg-surface-container-lowest z-10">
-        <h2 class="font-bold text-lg">Vælg brancheskabelon</h2>
-        <button @click="skabelonModal = false" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors">
+        <div>
+          <h2 class="font-bold text-lg">Brancheskabeloner</h2>
+          <p class="text-xs text-on-surface-variant">Vælg en skabelon – prislinjerne udfyldes automatisk</p>
+        </div>
+        <button @click="skabelonModal = false; skabelonSoeg = ''" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-container transition-colors">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <template x-for="sk in skabeloner" :key="sk.navn">
-          <button @click="brugSkabelon(sk); skabelonModal = false"
-            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent bg-surface-container hover:border-primary hover:bg-primary/5 transition-all active:scale-95 text-center">
-            <span class="material-symbols-outlined text-3xl text-primary" x-text="sk.ikon"></span>
-            <span class="text-sm font-bold" x-text="sk.navn"></span>
-            <span class="text-xs text-on-surface-variant" x-text="sk.linjer.length + ' linjer'"></span>
-          </button>
+
+      <!-- Søg -->
+      <div class="px-6 pt-4 pb-2 sticky top-[73px] bg-surface-container-lowest z-10">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
+          <input x-model="skabelonSoeg" type="text" placeholder="Søg f.eks. Maler, VVS, Elektriker..."
+            class="w-full h-10 pl-9 pr-4 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"/>
+        </div>
+
+        <!-- Plan gate info – kun for plan=none -->
+        <div x-show="userPlan === 'none'" class="mt-3 flex items-center gap-2 text-xs text-on-surface-variant bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <span class="material-symbols-outlined text-amber-600 text-base">lock</span>
+          <span>Du kan gratis bruge <strong>1 skabelon</strong> – abonner for at bruge alle 20.</span>
+          <a href="/konto.html" class="text-primary font-bold hover:underline ml-auto whitespace-nowrap">Vælg plan →</a>
+        </div>
+      </div>
+
+      <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <template x-for="(sk, idx) in filteredSkabeloner" :key="sk.navn">
+          <div>
+            <!-- Gratis (første skabelon = idx 0 i original array, eller har plan) -->
+            <template x-if="userPlan !== 'none' || skabeloner.indexOf(sk) === 0">
+              <button @click="brugSkabelon(sk); skabelonModal = false; skabelonSoeg = ''"
+                class="w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent bg-surface-container hover:border-primary hover:bg-primary/5 transition-all active:scale-95 text-center">
+                <span class="material-symbols-outlined text-3xl text-primary" x-text="sk.ikon"></span>
+                <span class="text-sm font-bold" x-text="sk.navn"></span>
+                <span class="text-xs text-on-surface-variant" x-text="sk.linjer.length + ' prislinjer'"></span>
+              </button>
+            </template>
+            <!-- Låst (plan=none og ikke første) -->
+            <template x-if="userPlan === 'none' && skabeloner.indexOf(sk) !== 0">
+              <a href="/konto.html"
+                class="w-full flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-transparent bg-surface-container opacity-60 relative overflow-hidden text-center cursor-pointer hover:opacity-80 transition-opacity">
+                <span class="material-symbols-outlined text-3xl text-on-surface-variant/40" x-text="sk.ikon"></span>
+                <span class="text-sm font-bold text-on-surface-variant" x-text="sk.navn"></span>
+                <span class="text-xs font-bold text-primary flex items-center gap-0.5">
+                  <span class="material-symbols-outlined text-xs">lock</span>Kræver plan
+                </span>
+              </a>
+            </template>
+          </div>
         </template>
+        <div x-show="filteredSkabeloner.length === 0" class="col-span-2 sm:col-span-4 text-center py-8 text-on-surface-variant text-sm">
+          Ingen skabeloner matcher søgningen.
+        </div>
       </div>
     </div>
   </div>
@@ -269,7 +308,14 @@ tailwind.config = {
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">Adresse</label>
-            <input x-model="tilbud.afsender.adresse" type="text" placeholder="Bygmestervej 12, 2400 København NV" class="field-input"/>
+            <input x-model="tilbud.afsender.adresse" list="dawa-afsender" type="text"
+              placeholder="Bygmestervej 12, 2400 København NV" class="field-input"
+              @input="hentDawa('afsender', $event.target.value)"/>
+            <datalist id="dawa-afsender">
+              <template x-for="f in dawaAfsender" :key="f.tekst">
+                <option :value="f.tekst"></option>
+              </template>
+            </datalist>
           </div>
           <div>
             <label class="field-label">CVR-nummer</label>
@@ -277,7 +323,7 @@ tailwind.config = {
           </div>
           <div>
             <label class="field-label">Telefon</label>
-            <input x-model="tilbud.afsender.telefon" type="tel" placeholder="12 34 56 78" class="field-input"/>
+            <input x-model="tilbud.afsender.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">E-mail</label>
@@ -356,11 +402,18 @@ tailwind.config = {
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">Adresse</label>
-            <input x-model="tilbud.modtager.adresse" type="text" placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"/>
+            <input x-model="tilbud.modtager.adresse" list="dawa-modtager" type="text"
+              placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"
+              @input="hentDawa('modtager', $event.target.value)"/>
+            <datalist id="dawa-modtager">
+              <template x-for="f in dawaModtager" :key="f.tekst">
+                <option :value="f.tekst"></option>
+              </template>
+            </datalist>
           </div>
           <div>
             <label class="field-label">Telefon</label>
-            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="12 34 56 78" class="field-input"/>
+            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
           </div>
           <div>
             <label class="field-label">EAN-nummer</label>
@@ -380,7 +433,14 @@ tailwind.config = {
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
             <label class="field-label">Tilbudsnummer</label>
-            <input x-model="tilbud.id" type="text" readonly class="field-input bg-surface-container cursor-not-allowed text-on-surface-variant" placeholder="Auto-genereret"/>
+            <div class="relative">
+              <input x-model="tilbud.id" type="text" class="field-input pr-8" placeholder="Auto-genereres ved gemning"/>
+              <button x-show="tilbud.id" type="button" @click="tilbud.id = ''" title="Nulstil til auto-nummer"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+            <p class="text-xs text-on-surface-variant mt-1">Tomt = automatisk. Skriv dit eget f.eks. 2024-042.</p>
           </div>
           <div>
             <label class="field-label">Dato</label>
@@ -483,11 +543,12 @@ tailwind.config = {
           <div>
             <label class="field-label">Betalingsbetingelser</label>
             <select x-model="tilbud.betalingsbetingelser" class="field-input">
-              <option value="netto8">Netto 8 dage</option>
-              <option value="netto14" selected>Netto 14 dage</option>
-              <option value="netto30">Netto 30 dage</option>
-              <option value="straks">Betales straks</option>
+              <option value="netto8">Netto 8 dage – kunden betaler inden 8 dage</option>
+              <option value="netto14">Netto 14 dage – kunden betaler inden 14 dage</option>
+              <option value="netto30">Netto 30 dage – kunden betaler inden 30 dage</option>
+              <option value="straks">Betales straks – ved levering/udførelse</option>
             </select>
+            <p class="text-xs text-on-surface-variant mt-1">Fristen regnes fra fakturadatoen.</p>
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">Note til kunden (valgfrit)</label>
@@ -660,6 +721,90 @@ const SKABELONER = [
     { beskrivelse: 'Hækhugst og bortskaffelse', antal: 0, enhed: 'time', enhedspris: 545 },
     { beskrivelse: 'Bortskaffelse af haveaffald', antal: 1, enhed: 'ls', enhedspris: 1200 }
   ]},
+  { navn: 'Smed', ikon: 'hardware', linjer: [
+    { beskrivelse: 'Timeløn smed', antal: 0, enhed: 'time', enhedspris: 675 },
+    { beskrivelse: 'Svejsearbejde', antal: 0, enhed: 'time', enhedspris: 750 },
+    { beskrivelse: 'Stål/jern materialer', antal: 0, enhed: 'kg', enhedspris: 45 },
+    { beskrivelse: 'Fremstilling af beslag/detaljer', antal: 0, enhed: 'stk', enhedspris: 0 },
+    { beskrivelse: 'Overfladebehandling/galvanisering', antal: 1, enhed: 'ls', enhedspris: 0 }
+  ]},
+  { navn: 'Blikkenslager', ikon: 'plumbing', linjer: [
+    { beskrivelse: 'Timeløn blikkenslager', antal: 0, enhed: 'time', enhedspris: 685 },
+    { beskrivelse: 'Inddækning i zink', antal: 0, enhed: 'm', enhedspris: 385 },
+    { beskrivelse: 'Tagrender og nedløbsrør (inkl. montering)', antal: 0, enhed: 'm', enhedspris: 295 },
+    { beskrivelse: 'Afløbsbrønd etablering', antal: 0, enhed: 'stk', enhedspris: 1850 },
+    { beskrivelse: 'Materialer og loddetilbehør', antal: 1, enhed: 'ls', enhedspris: 0 }
+  ]},
+  { navn: 'Mekaniker', ikon: 'build', linjer: [
+    { beskrivelse: 'Timeløn mekaniker', antal: 0, enhed: 'time', enhedspris: 695 },
+    { beskrivelse: 'Diagnostik og fejlsøgning', antal: 1, enhed: 'ls', enhedspris: 595 },
+    { beskrivelse: 'Reservedele og materialer', antal: 1, enhed: 'ls', enhedspris: 0 },
+    { beskrivelse: 'Olie- og filterskift', antal: 1, enhed: 'stk', enhedspris: 895 },
+    { beskrivelse: 'Bortskaffelsesgebyr', antal: 1, enhed: 'ls', enhedspris: 150 }
+  ]},
+  { navn: 'Stillads', ikon: 'construction', linjer: [
+    { beskrivelse: 'Opsætning af stillads', antal: 0, enhed: 'm²', enhedspris: 85 },
+    { beskrivelse: 'Stilladsudlejning pr. dag', antal: 0, enhed: 'dag', enhedspris: 185 },
+    { beskrivelse: 'Nedtagning og bortskaffelse', antal: 1, enhed: 'ls', enhedspris: 0 },
+    { beskrivelse: 'Fortovsdæk og afspærring', antal: 1, enhed: 'ls', enhedspris: 1200 },
+    { beskrivelse: 'Fragt og transport', antal: 1, enhed: 'ls', enhedspris: 950 }
+  ]},
+  { navn: 'Snedker', ikon: 'chair', linjer: [
+    { beskrivelse: 'Timeløn snedker', antal: 0, enhed: 'time', enhedspris: 675 },
+    { beskrivelse: 'Fremstilling af skabsmodul (inkl. materialer)', antal: 0, enhed: 'stk', enhedspris: 0 },
+    { beskrivelse: 'Montering og tilpasning', antal: 0, enhed: 'time', enhedspris: 675 },
+    { beskrivelse: 'Hængsler, skinner og beslag', antal: 1, enhed: 'ls', enhedspris: 0 },
+    { beskrivelse: 'Overfladebehandling og lakering', antal: 0, enhed: 'm²', enhedspris: 385 }
+  ]},
+  { navn: 'Isolering', ikon: 'thermostat', linjer: [
+    { beskrivelse: 'Timeløn isoleringsarbejder', antal: 0, enhed: 'time', enhedspris: 545 },
+    { beskrivelse: 'Loftsisolering 300mm Rockwool', antal: 0, enhed: 'm²', enhedspris: 285 },
+    { beskrivelse: 'Facadeisolering med puds', antal: 0, enhed: 'm²', enhedspris: 850 },
+    { beskrivelse: 'Gulvisolering 100mm', antal: 0, enhed: 'm²', enhedspris: 195 },
+    { beskrivelse: 'Bortskaffelse af gammelt materiale', antal: 1, enhed: 'ls', enhedspris: 0 }
+  ]},
+  { navn: 'Rengøring', ikon: 'cleaning_services', linjer: [
+    { beskrivelse: 'Timeløn rengøring', antal: 0, enhed: 'time', enhedspris: 395 },
+    { beskrivelse: 'Vinduespolering (udvendig+indvendig)', antal: 0, enhed: 'stk', enhedspris: 85 },
+    { beskrivelse: 'Byggerengøring efter håndværkere', antal: 0, enhed: 'm²', enhedspris: 95 },
+    { beskrivelse: 'Rengøringsmidler og materialer', antal: 1, enhed: 'ls', enhedspris: 350 },
+    { beskrivelse: 'Bortskaffelse af affald', antal: 1, enhed: 'ls', enhedspris: 600 }
+  ]},
+  { navn: 'Fliserne', ikon: 'grid_on', linjer: [
+    { beskrivelse: 'Timeløn fliseægger', antal: 0, enhed: 'time', enhedspris: 595 },
+    { beskrivelse: 'Fliseopsætning vægge (ekskl. fliser)', antal: 0, enhed: 'm²', enhedspris: 525 },
+    { beskrivelse: 'Fliseopsætning gulv (ekskl. fliser)', antal: 0, enhed: 'm²', enhedspris: 485 },
+    { beskrivelse: 'Fugning', antal: 0, enhed: 'm²', enhedspris: 125 },
+    { beskrivelse: 'Klæber, grunding og materialer', antal: 1, enhed: 'ls', enhedspris: 0 }
+  ]},
+  { navn: 'Glasmester', ikon: 'window', linjer: [
+    { beskrivelse: 'Timeløn glasmester', antal: 0, enhed: 'time', enhedspris: 695 },
+    { beskrivelse: 'Udskiftning af termorude', antal: 0, enhed: 'stk', enhedspris: 1850 },
+    { beskrivelse: 'Montering af nyt vindue (ekskl. vindue)', antal: 0, enhed: 'stk', enhedspris: 2400 },
+    { beskrivelse: 'Glasopskæring og tilpasning', antal: 0, enhed: 'm²', enhedspris: 850 },
+    { beskrivelse: 'Silikone og forsegling', antal: 1, enhed: 'ls', enhedspris: 385 }
+  ]},
+  { navn: 'Kloak', ikon: 'water', linjer: [
+    { beskrivelse: 'Timeløn kloakmester', antal: 0, enhed: 'time', enhedspris: 725 },
+    { beskrivelse: 'TV-inspektion af kloak', antal: 1, enhed: 'ls', enhedspris: 3500 },
+    { beskrivelse: 'Strømpeforing (CIPP)', antal: 0, enhed: 'm', enhedspris: 1850 },
+    { beskrivelse: 'Udgravning og rørudskiftning', antal: 0, enhed: 'm', enhedspris: 2400 },
+    { beskrivelse: 'Afspærring og skiltning', antal: 1, enhed: 'ls', enhedspris: 1200 }
+  ]},
+  { navn: 'Solceller', ikon: 'solar_power', linjer: [
+    { beskrivelse: 'Solcellepaneler inkl. montering (pr. stk.)', antal: 0, enhed: 'stk', enhedspris: 4500 },
+    { beskrivelse: 'Inverter installation', antal: 1, enhed: 'stk', enhedspris: 8500 },
+    { beskrivelse: 'Kabeltræk og eltilslutning', antal: 1, enhed: 'ls', enhedspris: 3500 },
+    { beskrivelse: 'Ansøgning til netselskab', antal: 1, enhed: 'ls', enhedspris: 1500 },
+    { beskrivelse: 'Igangsætning og test', antal: 1, enhed: 'ls', enhedspris: 2000 }
+  ]},
+  { navn: 'Terasse', ikon: 'deck', linjer: [
+    { beskrivelse: 'Timeløn tømrer/terasse', antal: 0, enhed: 'time', enhedspris: 565 },
+    { beskrivelse: 'Terassebrædder trykimpr. træ (ekskl. levering)', antal: 0, enhed: 'm²', enhedspris: 485 },
+    { beskrivelse: 'Underkonstruktion (bjælker og strøer)', antal: 0, enhed: 'm²', enhedspris: 285 },
+    { beskrivelse: 'Skruer, beslag og montagemateriel', antal: 1, enhed: 'ls', enhedspris: 0 },
+    { beskrivelse: 'Bortkørsel af jord og affald', antal: 1, enhed: 'ls', enhedspris: 1200 }
+  ]},
 ];
 
 function tilbudApp() {
@@ -683,6 +828,10 @@ function tilbudApp() {
     // Skabeloner
     skabelonModal: false,
     skabeloner: SKABELONER,
+    skabelonSoeg: '',
+    // DAWA adresse autocomplete
+    dawaAfsender: [], dawaModtager: [],
+    _dawaTA: null, _dawaTM: null,
     // Opfølgning
     opfoelgningModal: false,
     opfoelgningLoading: false,
@@ -723,6 +872,10 @@ function tilbudApp() {
           const u = await res.json();
           this.userPlan = u.plan || 'trial';
           if (u.virksomhed) this.tilbud.afsender = { ...this.tilbud.afsender, ...u.virksomhed };
+          // Standard betalingsbetingelse fra indstillinger
+          if (u.indstillinger?.betalingsbetingelse) this.tilbud.betalingsbetingelser = u.indstillinger.betalingsbetingelse;
+          // +45 telefon default
+          if (!this.tilbud.afsender.telefon) this.tilbud.afsender.telefon = '+45 ';
         }
       } catch(e) {}
     },
@@ -884,6 +1037,29 @@ function tilbudApp() {
         }
       } catch(e) { this.opfoelgningFejl = 'Netværksfejl ved afsendelse'; }
       this.sendingOpfoelgning = false;
+    },
+
+    get filteredSkabeloner() {
+      const q = this.skabelonSoeg.toLowerCase().trim();
+      if (!q) return this.skabeloner;
+      return this.skabeloner.filter(s => s.navn.toLowerCase().includes(q));
+    },
+
+    async hentDawa(felt, q) {
+      if (q.length < 3) {
+        if (felt === 'afsender') this.dawaAfsender = [];
+        else this.dawaModtager = [];
+        return;
+      }
+      const timerKey = felt === 'afsender' ? '_dawaTA' : '_dawaTM';
+      const resultKey = felt === 'afsender' ? 'dawaAfsender' : 'dawaModtager';
+      clearTimeout(this[timerKey]);
+      this[timerKey] = setTimeout(async () => {
+        try {
+          const r = await fetch('https://api.dataforsyningen.dk/adresser/autocomplete?q=' + encodeURIComponent(q) + '&per_side=6&type=adresse');
+          this[resultKey] = await r.json();
+        } catch {}
+      }, 300);
     },
 
     get subtotal() {
