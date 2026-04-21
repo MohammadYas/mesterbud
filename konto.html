@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <meta name="theme-color" content="#a23900">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
 tailwind.config = {
@@ -29,12 +29,54 @@ tailwind.config = {
 }
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
   h1, h2, h3 { font-family: 'Newsreader', serif; }
   [x-cloak] { display: none !important; }
-  .field-label { @apply block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1.5; }
-  .field-input { @apply w-full h-10 bg-surface-container-low border border-outline-variant rounded-lg px-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors; }
+  .field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #594138;
+    margin-bottom: 0.375rem;
+  }
+  .field-input {
+    display: block;
+    width: 100%;
+    height: 2.5rem;
+    background-color: #f7f3ed;
+    border: 1px solid #e1bfb3;
+    border-radius: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    font-size: 0.875rem;
+    color: #1c1c18;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: #a23900;
+    box-shadow: 0 0 0 1px #a23900;
+  }
+  .field-textarea {
+    display: block;
+    width: 100%;
+    background-color: #f7f3ed;
+    border: 1px solid #e1bfb3;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #1c1c18;
+    resize: none;
+    transition: border-color 0.15s;
+  }
+  .field-textarea:focus {
+    outline: none;
+    border-color: #a23900;
+    box-shadow: 0 0 0 1px #a23900;
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 </head>
@@ -70,12 +112,12 @@ tailwind.config = {
 
   <div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
 
-    <!-- Expired banner -->
-    <div x-show="plan === 'none'" x-cloak class="bg-error-container text-on-error-container rounded-xl p-5 flex items-start gap-4">
-      <span class="material-symbols-outlined text-2xl mt-0.5">warning</span>
+    <!-- Upgrade banner for plan='none' -->
+    <div x-show="plan === 'none'" x-cloak class="bg-surface-container border border-outline-variant rounded-xl p-5 flex items-start gap-4">
+      <span class="material-symbols-outlined text-2xl mt-0.5 text-on-surface-variant">upgrade</span>
       <div>
-        <p class="font-bold mb-1">Din prøveperiode er udløbet</p>
-        <p class="text-sm">Vælg et abonnement nedenfor for at fortsætte med at bruge Mesterbud.</p>
+        <p class="font-bold mb-1">Opgrader for at sende ubegrænsede tilbud</p>
+        <p class="text-sm text-on-surface-variant">Du har 1 gratis tilbud inkluderet. Vælg Basis eller Pro nedenfor for at sende flere.</p>
       </div>
     </div>
 
@@ -263,21 +305,22 @@ tailwind.config = {
                 <span class="material-symbols-outlined text-xs">workspace_premium</span>Pro
               </span>
               <span x-show="plan === 'basis'" class="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-0.5 rounded-full">Basis</span>
-              <span x-show="plan === 'trial'" class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">Trial</span>
-              <span x-show="plan === 'none'" class="bg-error-container text-on-error-container text-xs font-bold px-2 py-0.5 rounded-full">Udløbet</span>
+              <span x-show="plan === 'trial'" class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">Prøveperiode</span>
+              <span x-show="plan === 'none'" class="bg-surface-container text-on-surface-variant text-xs font-bold px-2 py-0.5 rounded-full">Gratis</span>
             </div>
             <!-- Status linje -->
-            <p x-show="naesteBetaling" class="text-sm text-on-surface-variant" x-text="'Næste betaling: ' + naesteBetaling"></p>
+            <p x-show="plan === 'none'" class="text-sm text-on-surface-variant">1 tilbud inkluderet gratis · Opgrader for at sende flere</p>
+            <p x-show="naesteBetaling && plan !== 'none'" class="text-sm text-on-surface-variant" x-text="'Næste betaling: ' + naesteBetaling"></p>
             <p x-show="plan === 'trial' && dageTilbage !== null" class="text-sm text-on-surface-variant" x-text="'Prøveperiode: ' + dageTilbage + ' dage tilbage'"></p>
             <p x-show="plan === 'trial' && dageTilbage === null" class="text-sm text-on-surface-variant">14 dages gratis prøveperiode</p>
-            <p x-show="stripeStatus && plan !== 'trial'" class="text-sm text-on-surface-variant mt-0.5" x-text="'Stripe-status: ' + stripeStatus"></p>
+            <p x-show="stripeStatus && plan !== 'trial' && plan !== 'none'" class="text-sm text-on-surface-variant mt-0.5" x-text="'Stripe-status: ' + stripeStatus"></p>
           </div>
           <span :class="{
-            'bg-error-container text-on-error-container': plan === 'none',
+            'bg-surface-container text-on-surface-variant': plan === 'none',
             'bg-blue-100 text-blue-800': plan === 'trial',
             'bg-green-100 text-green-800': plan === 'basis' || plan === 'pro'
           }" class="px-3 py-1 rounded-full text-xs font-bold flex-shrink-0"
-          x-text="plan === 'none' ? 'Opsagt' : plan === 'trial' ? 'Prøveperiode' : 'Aktiv'">
+          x-text="plan === 'none' ? 'Gratis' : plan === 'trial' ? 'Prøveperiode' : 'Aktiv'">
           </span>
         </div>
 
@@ -304,18 +347,20 @@ tailwind.config = {
             <div class="flex items-start justify-between mb-3">
               <div>
                 <h3 class="font-bold text-lg">Basis</h3>
-                <p class="text-on-surface-variant text-xs">Til den nystartede mester</p>
+                <p class="text-on-surface-variant text-xs">149 kr/md · 14 dages gratis prøveperiode via Stripe</p>
               </div>
               <span x-show="plan === 'basis'" class="bg-primary text-on-primary text-xs font-bold px-2 py-0.5 rounded-full">Aktiv</span>
             </div>
             <div class="flex items-baseline gap-1 mb-4">
-              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">199</span>
+              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">149</span>
               <span class="text-on-surface-variant text-sm">kr/md</span>
             </div>
             <ul class="space-y-2 text-sm mb-4">
-              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Op til 10 tilbud/md</li>
-              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Digital signatur</li>
-              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> PDF download</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Ubegrænsede tilbud</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> 8 brancheskabeloner</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Digital signatur fra kunden</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> PDF-download</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Tilbud på mobilen</li>
             </ul>
             <button x-show="plan !== 'basis'"
               @click="skiftPlan('basis')" :disabled="checkoutLoading"
@@ -324,25 +369,25 @@ tailwind.config = {
             </button>
           </div>
           <!-- Pro -->
-          <div class="p-5 rounded-xl border-2 relative transition-colors"
+          <div class="p-5 rounded-xl border-2 transition-colors"
             :class="plan === 'pro' ? 'border-primary bg-primary/5' : 'border-primary shadow-lg shadow-primary/10'">
-            <div x-show="plan !== 'pro'" class="absolute -top-3 right-4 bg-primary text-on-primary text-xs font-bold px-3 py-0.5 rounded-full">Mest populær</div>
             <div class="flex items-start justify-between mb-3">
               <div>
                 <h3 class="font-bold text-lg">Pro</h3>
-                <p class="text-on-surface-variant text-xs">Til den travle mester</p>
+                <p class="text-on-surface-variant text-xs">299 kr/md · 14 dages gratis prøveperiode via Stripe</p>
               </div>
               <span x-show="plan === 'pro'" class="bg-primary text-on-primary text-xs font-bold px-2 py-0.5 rounded-full">Aktiv</span>
             </div>
             <div class="flex items-baseline gap-1 mb-4">
-              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">349</span>
+              <span class="text-3xl font-bold" style="font-family: Newsreader, serif">299</span>
               <span class="text-on-surface-variant text-sm">kr/md</span>
             </div>
             <ul class="space-y-2 text-sm mb-4">
-              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Ubegrænsede tilbud</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Alt i Basis</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> AI diktér tilbud med stemme</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> AI fotoanalyse af opgave (Pro)</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> AI opfølgningsmail</li>
               <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Prioriteret support</li>
-              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Automatisk opfølgning</li>
-              <li class="flex items-center gap-2 font-bold text-primary"><span class="material-symbols-outlined text-primary text-base">done</span> Tilpassede skabeloner</li>
             </ul>
             <button x-show="plan !== 'pro'"
               @click="skiftPlan('pro')" :disabled="checkoutLoading"
@@ -614,8 +659,7 @@ function kontoApp() {
       this.pwLoading = false;
     },
 
-    planLabel(p) { return { 'trial': 'Gratis prøveperiode', 'basis': 'Basis – 199 kr/md', 'pro': 'Pro – 349 kr/md', 'none': 'Intet abonnement' }[p] || 'Ukendt'; },
-
+    planLabel(p) { return { 'trial': 'Gratis prøveperiode', 'basis': 'Basis – 149 kr/md', 'pro': 'Pro – 299 kr/md', 'none': 'Gratis konto' }[p] || 'Ukendt'; },
 
     visToast(msg, icon = 'check_circle') {
       this.toast = { show: true, msg, icon };
