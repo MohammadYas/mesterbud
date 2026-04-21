@@ -334,7 +334,6 @@ tailwind.config = {
 
       <!-- Modtager -->
       <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm" x-data="{
-        visDetaljer: false,
         cvrLoader: false,
         cvrFejl: '',
         async hentCVR() {
@@ -350,57 +349,59 @@ tailwind.config = {
               if (d.adresse || d.postnr || d.by) $root.tilbud.modtager.adresse = [d.adresse, d.postnr, d.by].filter(Boolean).join(', ');
               if (d.telefon) $root.tilbud.modtager.telefon = d.telefon;
               if (d.email) $root.tilbud.modtager.email = d.email;
-              this.visDetaljer = true;
             }
           } catch(e) { this.cvrFejl = 'CVR-opslag fejlede – prøv igen'; }
           this.cvrLoader = false;
         }
       }">
-        <h2 class="text-base font-bold mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-lg">business</span>
-          Modtager (kunde)
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg">person</span>
+            Modtager
+          </h2>
+          <!-- Er virksomhed toggle -->
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <span class="text-sm text-on-surface-variant">Virksomhed</span>
+            <div class="relative">
+              <input type="checkbox" x-model="tilbud.modtager.erVirksomhed" class="sr-only peer"/>
+              <div class="w-10 h-5 bg-surface-container-high peer-checked:bg-primary rounded-full transition-colors"></div>
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+            </div>
+          </label>
+        </div>
 
-        <!-- Primære felter: altid synlige -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Navn / Firmanavn -->
           <div class="sm:col-span-2">
-            <label class="field-label">Firmanavn <span class="text-error">*</span></label>
-            <input x-model="tilbud.modtager.navn" type="text" placeholder="Nielsen Holding ApS" class="field-input" required/>
+            <label class="field-label">
+              <span x-text="tilbud.modtager.erVirksomhed ? 'Firmanavn' : 'Navn'"></span>
+              <span class="text-error"> *</span>
+            </label>
+            <input x-model="tilbud.modtager.navn" type="text"
+              :placeholder="tilbud.modtager.erVirksomhed ? 'Nielsen Holding ApS' : 'Morten Nielsen'"
+              class="field-input" required/>
           </div>
-          <div>
-            <label class="field-label">Kontaktperson <span class="text-error">*</span></label>
-            <input x-model="tilbud.modtager.kontaktperson" type="text" placeholder="Morten Nielsen" class="field-input" required/>
+
+          <!-- Kontaktperson – kun for virksomheder -->
+          <div x-show="tilbud.modtager.erVirksomhed" x-transition>
+            <label class="field-label">Kontaktperson</label>
+            <input x-model="tilbud.modtager.kontaktperson" type="text" placeholder="Morten Nielsen" class="field-input"/>
           </div>
-          <div>
+
+          <!-- Email -->
+          <div :class="tilbud.modtager.erVirksomhed ? '' : 'sm:col-span-2'">
             <label class="field-label">E-mail <span class="text-error">*</span></label>
             <input x-model="tilbud.modtager.email" type="email" placeholder="morten@firma.dk" class="field-input" required/>
           </div>
-        </div>
 
-        <!-- Ekspander: Tilføj detaljer -->
-        <button @click="visDetaljer = !visDetaljer"
-          class="flex items-center gap-1.5 text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors mb-3">
-          <span class="material-symbols-outlined text-base" x-text="visDetaljer ? 'expand_less' : 'expand_more'"></span>
-          <span x-text="visDetaljer ? 'Skjul detaljer' : 'Tilføj detaljer'"></span>
-        </button>
-
-        <!-- Sekundære felter -->
-        <div x-show="visDetaljer" x-transition class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- CVR-opslag -->
-          <div class="sm:col-span-2">
-            <label class="field-label">CVR-nummer</label>
-            <div class="flex gap-2">
-              <input x-model="tilbud.modtager.cvr" type="text" placeholder="12345678" maxlength="8"
-                class="field-input" @keydown.enter.prevent="hentCVR()"/>
-              <button @click="hentCVR()" :disabled="cvrLoader || !tilbud.modtager.cvr"
-                class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container border border-outline-variant text-sm font-bold hover:bg-surface-container-high transition-colors active:scale-95 disabled:opacity-50 whitespace-nowrap">
-                <span x-show="cvrLoader" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                <span x-show="!cvrLoader">Hent →</span>
-              </button>
-            </div>
-            <p x-show="cvrFejl" x-cloak class="text-xs text-error mt-1" x-text="cvrFejl"></p>
+          <!-- Telefon -->
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
           </div>
-          <div class="sm:col-span-2">
+
+          <!-- Adresse -->
+          <div :class="tilbud.modtager.erVirksomhed ? '' : 'sm:col-span-2'">
             <label class="field-label">Adresse</label>
             <input x-model="tilbud.modtager.adresse" list="dawa-modtager" type="text"
               placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"
@@ -411,11 +412,24 @@ tailwind.config = {
               </template>
             </datalist>
           </div>
-          <div>
-            <label class="field-label">Telefon</label>
-            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
+
+          <!-- CVR – kun virksomheder -->
+          <div x-show="tilbud.modtager.erVirksomhed" x-transition class="sm:col-span-2">
+            <label class="field-label">CVR-nummer</label>
+            <div class="flex gap-2">
+              <input x-model="tilbud.modtager.cvr" type="text" placeholder="12345678" maxlength="8"
+                class="field-input" @keydown.enter.prevent="hentCVR()"/>
+              <button @click="hentCVR()" :disabled="cvrLoader || !tilbud.modtager.cvr"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container border border-outline-variant text-sm font-bold hover:bg-surface-container-high transition-colors active:scale-95 disabled:opacity-50 whitespace-nowrap">
+                <span x-show="cvrLoader" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                <span x-show="!cvrLoader">Hent fra CVR →</span>
+              </button>
+            </div>
+            <p x-show="cvrFejl" x-cloak class="text-xs text-error mt-1" x-text="cvrFejl"></p>
           </div>
-          <div>
+
+          <!-- EAN – kun virksomheder -->
+          <div x-show="tilbud.modtager.erVirksomhed" x-transition>
             <label class="field-label">EAN-nummer</label>
             <input x-model="tilbud.modtager.ean" type="text" placeholder="5790000000000" maxlength="20" class="field-input"/>
             <p class="text-xs text-on-surface-variant mt-1">Til offentlige kunder og kommuner</p>
@@ -528,18 +542,31 @@ tailwind.config = {
           Tilføj linje
         </button>
 
+        <!-- Moms-toggle -->
+        <div class="mt-5 flex items-center gap-3 py-3 border-t border-outline-variant/20">
+          <label class="flex items-center gap-2 cursor-pointer select-none text-sm">
+            <div class="relative">
+              <input type="checkbox" x-model="tilbud.inkluderMoms" class="sr-only peer"/>
+              <div class="w-10 h-5 bg-surface-container-high peer-checked:bg-primary rounded-full transition-colors"></div>
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+            </div>
+            <span class="font-medium">Inkluder 25% moms</span>
+          </label>
+          <span x-show="!tilbud.inkluderMoms" class="text-xs text-on-surface-variant">(momsfrit – fx omvendt betalingspligt eller ikke momsregistreret)</span>
+        </div>
+
         <!-- Totaler -->
-        <div class="mt-6 pt-6 border-t-2 border-outline-variant/30 space-y-2">
+        <div class="mt-2 space-y-2">
           <div class="flex justify-between text-sm">
-            <span class="text-on-surface-variant">Subtotal ekskl. moms</span>
+            <span class="text-on-surface-variant" x-text="tilbud.inkluderMoms ? 'Subtotal ekskl. moms' : 'Subtotal'"></span>
             <span class="font-medium" x-text="formatKr(subtotal)"></span>
           </div>
-          <div class="flex justify-between text-sm">
+          <div x-show="tilbud.inkluderMoms" class="flex justify-between text-sm">
             <span class="text-on-surface-variant">Moms (25%)</span>
             <span class="font-medium" x-text="formatKr(moms)"></span>
           </div>
           <div class="flex justify-between text-lg font-bold pt-2 border-t border-outline-variant/30">
-            <span>Total inkl. moms</span>
+            <span x-text="tilbud.inkluderMoms ? 'Total inkl. moms' : 'Total'"></span>
             <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
           </div>
         </div>
@@ -638,15 +665,15 @@ tailwind.config = {
           <!-- Totaler -->
           <div class="space-y-1.5 mb-6">
             <div class="flex justify-between text-xs text-on-surface-variant">
-              <span>Subtotal ekskl. moms</span>
+              <span x-text="tilbud.inkluderMoms ? 'Subtotal ekskl. moms' : 'Subtotal'"></span>
               <span x-text="formatKr(subtotal)"></span>
             </div>
-            <div class="flex justify-between text-xs text-on-surface-variant">
+            <div x-show="tilbud.inkluderMoms" class="flex justify-between text-xs text-on-surface-variant">
               <span>Moms 25%</span>
               <span x-text="formatKr(moms)"></span>
             </div>
             <div class="flex justify-between font-bold text-base pt-2 border-t-2 border-primary/20">
-              <span>Total inkl. moms</span>
+              <span x-text="tilbud.inkluderMoms ? 'Total inkl. moms' : 'Total'"></span>
               <span class="text-primary" style="font-family: Newsreader, serif" x-text="formatKr(total)"></span>
             </div>
           </div>
@@ -858,10 +885,11 @@ function tilbudApp() {
       gyldigTil: '',
       beskrivelse: '',
       afsender: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '' },
-      modtager: { navn: '', kontaktperson: '', email: '', adresse: '', telefon: '', cvr: '', ean: '' },
+      modtager: { navn: '', kontaktperson: '', email: '', adresse: '', telefon: '', cvr: '', ean: '', erVirksomhed: false },
       linjer: [{ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }],
       betalingsbetingelser: 'netto14',
       note: '',
+      inkluderMoms: true,
     },
 
     async init() {
@@ -1077,7 +1105,7 @@ function tilbudApp() {
     get subtotal() {
       return this.tilbud.linjer.reduce((sum, l) => sum + (l.antal || 0) * (l.enhedspris || 0), 0);
     },
-    get moms() { return this.subtotal * 0.25; },
+    get moms() { return this.tilbud.inkluderMoms ? this.subtotal * 0.25 : 0; },
     get total() { return this.subtotal + this.moms; },
 
     tilfoejLinje() {
@@ -1158,8 +1186,12 @@ function tilbudApp() {
       }
     },
 
-    downloadPDF() {
-      if (!this.tilbud.id) { this.visToast('Gem tilbuddet først', 'warning'); return; }
+    async downloadPDF() {
+      if (!this.tilbud.id) {
+        // Auto-gem som kladde, vent på ID
+        await this.gem('kladde');
+        if (!this.tilbud.id) { this.visToast('Gem fejlede – prøv igen', 'error'); return; }
+      }
       window.open('/tilbud-preview.html?id=' + this.tilbud.id + '&pdf=1', '_blank');
     },
 
