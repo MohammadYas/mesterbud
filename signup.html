@@ -35,9 +35,9 @@ tailwind.config = {
   [x-cloak] { display: none !important; }
   .branche-tile {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 0.5rem; padding: 1rem; border-radius: 0.75rem; border: 2px solid #e1bfb3;
-    background: #fff; cursor: pointer; transition: all 0.15s; font-size: 0.8rem;
-    font-weight: 700; text-align: center; color: #594138; min-height: 90px;
+    gap: 0.35rem; padding: 0.6rem 0.4rem; border-radius: 0.5rem; border: 2px solid #e1bfb3;
+    background: #fff; cursor: pointer; transition: all 0.15s; font-size: 0.7rem;
+    font-weight: 700; text-align: center; color: #594138; min-height: 76px;
   }
   .branche-tile:hover { border-color: #a23900; background: #fdf9f3; }
   .branche-tile.selected { border-color: #a23900; background: #a23900; color: #fff; }
@@ -59,7 +59,7 @@ tailwind.config = {
   <div class="flex items-center justify-center gap-2 mb-6">
     <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-sm font-medium">
       <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-      14 dages gratis prøveperiode – intet kreditkort
+      14 dages gratis prøveperiode
     </span>
   </div>
 
@@ -143,7 +143,7 @@ tailwind.config = {
       </div>
 
       <!-- Branche grid -->
-      <div class="grid grid-cols-4 gap-2.5 mb-6">
+      <div class="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
         <template x-for="b in brancher" :key="b.id">
           <button type="button" @click="branche = b.id"
             :class="branche === b.id ? 'selected' : ''"
@@ -210,14 +210,26 @@ function signupApp() {
     success: false,
 
     brancher: [
-      { id: 'maler',         navn: 'Maler',         ikon: 'format_paint'      },
-      { id: 'vvs',           navn: 'VVS',            ikon: 'water_drop'        },
-      { id: 'elektriker',    navn: 'Elektriker',     ikon: 'bolt'              },
-      { id: 'toemrer',       navn: 'Tømrer',         ikon: 'carpenter'         },
-      { id: 'murer',         navn: 'Murer',          ikon: 'home_repair_service'},
-      { id: 'tagdaekker',    navn: 'Tagdækker',      ikon: 'roofing'           },
-      { id: 'gulvlaegger',   navn: 'Gulvlægger',     ikon: 'texture'           },
-      { id: 'gartner',       navn: 'Anlægsgartner',  ikon: 'yard'              },
+      { id: 'maler',         navn: 'Maler',          ikon: 'format_paint'       },
+      { id: 'vvs',           navn: 'VVS',             ikon: 'water_drop'         },
+      { id: 'elektriker',    navn: 'Elektriker',      ikon: 'bolt'               },
+      { id: 'toemrer',       navn: 'Tømrer',          ikon: 'carpenter'          },
+      { id: 'murer',         navn: 'Murer',           ikon: 'home_repair_service'},
+      { id: 'tagdaekker',    navn: 'Tagdækker',       ikon: 'roofing'            },
+      { id: 'gulvlaegger',   navn: 'Gulvlægger',      ikon: 'texture'            },
+      { id: 'gartner',       navn: 'Anlægsgartner',   ikon: 'yard'               },
+      { id: 'mekaniker',     navn: 'Mekaniker',       ikon: 'car_repair'         },
+      { id: 'kloakmester',   navn: 'Kloakmester',     ikon: 'plumbing'           },
+      { id: 'snedker',       navn: 'Snedker',         ikon: 'handyman'           },
+      { id: 'blikkenslager', navn: 'Blikkenslager',   ikon: 'pipeline'           },
+      { id: 'glarmester',    navn: 'Glarmester',      ikon: 'window'             },
+      { id: 'isolatør',      navn: 'Isolatør',        ikon: 'heat'               },
+      { id: 'brolaegger',    navn: 'Brolægger',       ikon: 'construction'       },
+      { id: 'laasesmed',     navn: 'Låsesmed',        ikon: 'key'                },
+      { id: 'smed',          navn: 'Smed',            ikon: 'hardware'           },
+      { id: 'stillads',      navn: 'Stilladsbygger',  ikon: 'stacks'             },
+      { id: 'rengøring',     navn: 'Servicevirksomhed',ikon: 'cleaning_services' },
+      { id: 'andet',         navn: 'Anden håndværker',ikon: 'build'              },
     ],
 
     nextTrin() {
