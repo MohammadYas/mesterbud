@@ -60,10 +60,13 @@ exports.handler = async (event, context) => {
     // Sanér modtager-felter
     const modtager = body.modtager || {};
     const cleanModtager = {
-      navn:     sanitizeString(modtager.navn, 100),
-      email:    sanitizeString(modtager.email, 254).toLowerCase(),
-      telefon:  sanitizeString(modtager.telefon, 30),
-      adresse:  sanitizeString(modtager.adresse, 200),
+      navn:          sanitizeString(modtager.navn, 100),
+      kontaktperson: sanitizeString(modtager.kontaktperson, 100),
+      email:         sanitizeString(modtager.email, 254).toLowerCase(),
+      telefon:       sanitizeString(modtager.telefon, 30),
+      adresse:       sanitizeString(modtager.adresse, 200),
+      cvr:           sanitizeString(modtager.cvr, 20),
+      ean:           sanitizeString(modtager.ean, 20),
     };
 
     // Sanér linjer (maks. 100 linjer)

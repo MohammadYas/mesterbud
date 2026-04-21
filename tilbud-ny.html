@@ -287,29 +287,88 @@ tailwind.config = {
       </section>
 
       <!-- Modtager -->
-      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm">
+      <section class="bg-surface-container-lowest rounded-xl p-5 border border-outline-variant/20 shadow-sm" x-data="{
+        visDetaljer: false,
+        cvrLoader: false,
+        cvrFejl: '',
+        async hentCVR() {
+          const cvr = ($root.tilbud.modtager.cvr || '').replace(/\s/g, '');
+          if (!/^\d{8}$/.test(cvr)) { this.cvrFejl = 'CVR-nummer skal være 8 cifre'; return; }
+          this.cvrLoader = true; this.cvrFejl = '';
+          try {
+            const res = await fetch('/api/hent-cvr?cvr=' + cvr);
+            const d = await res.json();
+            if (d.fejl) { this.cvrFejl = d.fejl; }
+            else {
+              if (d.navn) $root.tilbud.modtager.navn = d.navn;
+              if (d.adresse || d.postnr || d.by) $root.tilbud.modtager.adresse = [d.adresse, d.postnr, d.by].filter(Boolean).join(', ');
+              if (d.telefon) $root.tilbud.modtager.telefon = d.telefon;
+              if (d.email) $root.tilbud.modtager.email = d.email;
+              this.visDetaljer = true;
+            }
+          } catch(e) { this.cvrFejl = 'CVR-opslag fejlede – prøv igen'; }
+          this.cvrLoader = false;
+        }
+      }">
         <h2 class="text-base font-bold mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-lg">person</span>
+          <span class="material-symbols-outlined text-primary text-lg">business</span>
           Modtager (kunde)
         </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="field-label">Navn <span class="text-error">*</span></label>
-            <input x-model="tilbud.modtager.navn" type="text" placeholder="Morten Nielsen" class="field-input" required/>
+
+        <!-- Primære felter: altid synlige -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div class="sm:col-span-2">
+            <label class="field-label">Firmanavn <span class="text-error">*</span></label>
+            <input x-model="tilbud.modtager.navn" type="text" placeholder="Nielsen Holding ApS" class="field-input" required/>
           </div>
           <div>
-            <label class="field-label">Virksomhed (valgfrit)</label>
-            <input x-model="tilbud.modtager.virksomhed" type="text" placeholder="Nielsen Holding ApS" class="field-input"/>
+            <label class="field-label">Kontaktperson <span class="text-error">*</span></label>
+            <input x-model="tilbud.modtager.kontaktperson" type="text" placeholder="Morten Nielsen" class="field-input" required/>
+          </div>
+          <div>
+            <label class="field-label">E-mail <span class="text-error">*</span></label>
+            <input x-model="tilbud.modtager.email" type="email" placeholder="morten@firma.dk" class="field-input" required/>
+          </div>
+        </div>
+
+        <!-- Ekspander: Tilføj detaljer -->
+        <button @click="visDetaljer = !visDetaljer"
+          class="flex items-center gap-1.5 text-sm font-bold text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors mb-3">
+          <span class="material-symbols-outlined text-base" x-text="visDetaljer ? 'expand_less' : 'expand_more'"></span>
+          <span x-text="visDetaljer ? 'Skjul detaljer' : 'Tilføj detaljer'"></span>
+        </button>
+
+        <!-- Sekundære felter -->
+        <div x-show="visDetaljer" x-transition class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- CVR-opslag -->
+          <div class="sm:col-span-2">
+            <label class="field-label">CVR-nummer</label>
+            <div class="flex gap-2">
+              <input x-model="tilbud.modtager.cvr" type="text" placeholder="12345678" maxlength="8"
+                class="field-input" @keydown.enter.prevent="hentCVR()"/>
+              <button @click="hentCVR()" :disabled="cvrLoader || !tilbud.modtager.cvr"
+                class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container border border-outline-variant text-sm font-bold hover:bg-surface-container-high transition-colors active:scale-95 disabled:opacity-50 whitespace-nowrap">
+                <span x-show="cvrLoader" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                <span x-show="!cvrLoader">Hent →</span>
+              </button>
+            </div>
+            <p x-show="cvrFejl" x-cloak class="text-xs text-error mt-1" x-text="cvrFejl"></p>
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">Adresse</label>
             <input x-model="tilbud.modtager.adresse" type="text" placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"/>
           </div>
-          <div class="sm:col-span-2">
-            <label class="field-label">E-mail</label>
-            <input x-model="tilbud.modtager.email" type="email" placeholder="morten@email.dk" class="field-input"/>
+          <div>
+            <label class="field-label">Telefon</label>
+            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="12 34 56 78" class="field-input"/>
+          </div>
+          <div>
+            <label class="field-label">EAN-nummer</label>
+            <input x-model="tilbud.modtager.ean" type="text" placeholder="5790000000000" maxlength="20" class="field-input"/>
+            <p class="text-xs text-on-surface-variant mt-1">Til offentlige kunder og kommuner</p>
           </div>
         </div>
+
       </section>
 
       <!-- Tilbudsdetaljer -->
@@ -480,8 +539,8 @@ tailwind.config = {
           <!-- Modtager -->
           <div class="mb-6">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Til</p>
-            <p class="font-bold" x-text="tilbud.modtager.navn || 'Kundens navn'"></p>
-            <p class="text-on-surface-variant text-xs" x-text="tilbud.modtager.virksomhed"></p>
+            <p class="font-bold" x-text="tilbud.modtager.navn || 'Firmanavn'"></p>
+            <p class="text-on-surface-variant text-xs" x-text="tilbud.modtager.kontaktperson"></p>
             <p class="text-on-surface-variant text-xs" x-text="tilbud.modtager.adresse"></p>
           </div>
           <!-- Beskrivelse -->
@@ -638,7 +697,7 @@ function tilbudApp() {
       gyldigTil: '',
       beskrivelse: '',
       afsender: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '' },
-      modtager: { navn: '', virksomhed: '', adresse: '', email: '' },
+      modtager: { navn: '', kontaktperson: '', email: '', adresse: '', telefon: '', cvr: '', ean: '' },
       linjer: [{ beskrivelse: '', antal: 1, enhed: 'stk', enhedspris: 0 }],
       betalingsbetingelser: 'netto14',
       note: '',
@@ -850,7 +909,7 @@ function tilbudApp() {
 
     async gem(status) {
       if (!this.tilbud.modtager.navn && status !== 'kladde') {
-        this.visToast('Udfyld kundens navn inden afsendelse', 'warning');
+        this.visToast('Udfyld firmanavn inden afsendelse', 'warning');
         return;
       }
       this.saving = true;
@@ -900,7 +959,7 @@ function tilbudApp() {
 
     async send() {
       if (!this.tilbud.modtager.navn) {
-        this.visToast('Udfyld kundens navn inden afsendelse', 'warning');
+        this.visToast('Udfyld firmanavn inden afsendelse', 'warning');
         return;
       }
       await this.gem('sendt');

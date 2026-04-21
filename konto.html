@@ -149,6 +149,65 @@ tailwind.config = {
       </div>
     </section>
 
+    <!-- SEKTION 1b: Priser og standardindstillinger -->
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden"
+      x-data="indstillingerApp()" x-init="init()">
+      <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary">tune</span>
+        <div>
+          <h2 class="font-bold text-base">Priser og standardindstillinger</h2>
+          <p class="text-xs text-on-surface-variant">Bruges som standard på alle nye tilbud.</p>
+        </div>
+      </div>
+      <div class="p-6 space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Min timepris</label>
+            <div class="flex items-center gap-2">
+              <input x-model.number="ind.timepris" type="number" min="0" step="1" placeholder="625" class="field-input"/>
+              <span class="text-sm text-on-surface-variant whitespace-nowrap">kr/time</span>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Avance på materialer</label>
+            <div class="flex items-center gap-2">
+              <input x-model.number="ind.avance" type="number" min="0" max="1000" step="1" placeholder="15" class="field-input"/>
+              <span class="text-sm text-on-surface-variant">%</span>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Betalingsbetingelse</label>
+            <select x-model="ind.betalingsbetingelse" class="field-input">
+              <option value="netto8">Netto 8 dage</option>
+              <option value="netto14">Netto 14 dage</option>
+              <option value="netto30">Netto 30 dage</option>
+              <option value="forudbetaling">Forudbetaling</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Gyldighedsperiode</label>
+            <div class="flex items-center gap-2">
+              <input x-model.number="ind.gyldigDage" type="number" min="1" max="365" step="1" placeholder="30" class="field-input"/>
+              <span class="text-sm text-on-surface-variant">dage</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <p x-show="gemt" x-cloak x-transition class="text-sm text-green-700 flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            Indstillinger gemt
+          </p>
+          <div class="ml-auto">
+            <button @click="gem()" :disabled="gemmer"
+              class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
+              <span x-show="gemmer" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              Gem indstillinger
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- SEKTION 2: Abonnement -->
     <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
@@ -414,10 +473,47 @@ function kontoApp() {
 
     planLabel(p) { return { 'trial': 'Gratis prøveperiode', 'basis': 'Basis – 199 kr/md', 'pro': 'Pro – 349 kr/md', 'none': 'Intet abonnement' }[p] || 'Ukendt'; },
 
+
     visToast(msg, icon = 'check_circle') {
       this.toast = { show: true, msg, icon };
       setTimeout(() => { this.toast.show = false; }, 3000);
     }
+  };
+}
+
+function indstillingerApp() {
+  return {
+    ind: { timepris: 625, avance: 15, betalingsbetingelse: 'netto14', gyldigDage: 30 },
+    gemmer: false,
+    gemt: false,
+
+    async init() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/get-user', { headers: { 'Authorization': 'Bearer ' + s.access_token } });
+        if (res.ok) {
+          const u = await res.json();
+          if (u.indstillinger) this.ind = { ...this.ind, ...u.indstillinger };
+        }
+      } catch(e) {}
+    },
+
+    async gem() {
+      this.gemmer = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-user', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ indstillinger: this.ind })
+        });
+        if (res.ok) {
+          this.gemt = true;
+          setTimeout(() => { this.gemt = false; }, 3000);
+        }
+      } catch(e) {}
+      this.gemmer = false;
+    },
   };
 }
 </script>

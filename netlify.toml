@@ -68,6 +68,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/hent-cvr"
+  to = "/.netlify/functions/hent-cvr"
+  status = 200
+
+[[redirects]]
   from = "/api/send-opfoelgning"
   to = "/.netlify/functions/send-opfoelgning"
   status = 200

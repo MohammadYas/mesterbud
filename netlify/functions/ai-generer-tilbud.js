@@ -1,4 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse,
@@ -7,9 +6,8 @@ const {
 
 const DAGLIG_AI_KVOTE = 50;
 
-const SYSTEM_PROMPT = `Du er en erfaren dansk håndværker der laver tilbud. Ud fra beskrivelsen nedenfor genererer du præcise tilbudslinjer. Brug naturligt, fagligt dansk. Ingen marketing-sprog. Skriv beskrivelser som en håndværker selv ville skrive dem – kort og præcist. Returner KUN valid JSON, ingen forklaring:
-{"linjer":[{"beskrivelse":"string","antal":number,"enhed":"stk|time|m²|m|ls","enhedspris":number}],"opgavebeskrivelse":"string"}
-Brug realistiske danske markedspriser for 2025.`;
+const SYSTEM_PROMPT_BASE = `Du er en erfaren dansk håndværker der laver tilbud. Ud fra beskrivelsen nedenfor genererer du præcise tilbudslinjer. Brug naturligt, fagligt dansk. Ingen marketing-sprog. Skriv beskrivelser som en håndværker selv ville skrive dem – kort og præcist. Returner KUN valid JSON, ingen forklaring:
+{"linjer":[{"beskrivelse":"string","antal":number,"enhed":"stk|time|m²|m|ls","enhedspris":number}],"opgavebeskrivelse":"string"}`;
 
 async function checkOgInkrementerKvote(store, userId) {
   const dagNoegle = new Date().toISOString().slice(0, 10);
@@ -62,26 +60,44 @@ exports.handler = async (event, context) => {
   const inputTekst = data.beskrivelse || data.transkription || '';
   const brancheTekst = data.branche ? `\nBranche: ${data.branche}` : '';
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // Hent brugerens timepriser fra profil
+  let brugerPriser = 'Brug standard danske markedspriser for 2025.';
+  try {
+    const profilRaw = await store.get(`profil/${user.sub}`);
+    if (profilRaw) {
+      const profil = JSON.parse(profilRaw);
+      const tp = profil.indstillinger?.timepris;
+      const av = profil.indstillinger?.avance || 15;
+      if (tp) brugerPriser = `Brugerens timepris: ${tp} kr/time. Avance på materialer: ${av}%. Brug disse frem for standard markedspriser.`;
+    }
+  } catch {}
+
+  const systemPrompt = `${SYSTEM_PROMPT_BASE}\n${brugerPriser}`;
 
   try {
-    const message = await Promise.race([
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 2000,
-        system: SYSTEM_PROMPT,
-        messages: [
-          { role: 'user', content: inputTekst + brancheTekst }
-        ],
+    const response = await Promise.race([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'o4-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: inputTekst + brancheTekst },
+          ],
+          response_format: { type: 'json_object' },
+          max_completion_tokens: 2000,
+        }),
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000)),
     ]);
 
-    const tekst = message.content[0].text.trim();
-    // Find JSON i svaret (Claude kan indimellem tilføje tekst)
-    const jsonMatch = tekst.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Ingen gyldig JSON i svar');
-    const result = JSON.parse(jsonMatch[0]);
+    const aiData = await response.json();
+    if (aiData.error) throw new Error(aiData.error.message);
+    const result = JSON.parse(aiData.choices[0].message.content);
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (e) {
     console.error('ai-generer-tilbud fejl:', e.message);

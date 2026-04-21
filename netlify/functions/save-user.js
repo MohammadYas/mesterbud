@@ -54,6 +54,18 @@ exports.handler = async (event, context) => {
       profil.virksomhed = cleanVirksomhed;
     }
 
+    // Gem indstillinger hvis med i request
+    if (body.indstillinger && typeof body.indstillinger === 'object') {
+      const ind = body.indstillinger;
+      const GYLDIGE_BETALING = ['netto8', 'netto14', 'netto30', 'forudbetaling'];
+      profil.indstillinger = {
+        timepris:          Math.max(0, Math.min(Number(ind.timepris) || 0, 100_000)),
+        avance:            Math.max(0, Math.min(Number(ind.avance) || 0, 1000)),
+        betalingsbetingelse: GYLDIGE_BETALING.includes(ind.betalingsbetingelse) ? ind.betalingsbetingelse : 'netto14',
+        gyldigDage:        Math.max(1, Math.min(Number(ind.gyldigDage) || 30, 365)),
+      };
+    }
+
     profil.opdateret = new Date().toISOString();
     await store.set(`profil/${userId}`, JSON.stringify(profil));
 

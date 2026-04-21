@@ -1,4 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse, CORS_HEADERS,
@@ -97,24 +96,34 @@ Analyser disse tilbudsdata og returner KUN valid JSON:
 Statistik: acceptrate ${acceptRate}%, gennemsnitsbeløb ${gennemsnit.toLocaleString('da-DK')} kr, ${tilbud.length} tilbud i alt.
 Vær konkret og brug de faktiske tal. Ingen generiske råd. Kun JSON.`;
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const message = await Promise.race([
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 500,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: JSON.stringify(oversigt) }
-        ],
+    const response = await Promise.race([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'o4-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: JSON.stringify(oversigt) },
+          ],
+          max_completion_tokens: 2000,
+        }),
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000)),
     ]);
 
-    const tekst = message.content[0].text.trim();
+    const aiData = await response.json();
+    if (aiData.error) throw new Error(aiData.error.message);
+    const tekst = aiData.choices[0].message.content.trim();
+    // Parse JSON fra svaret (o4-mini kan tilføje markdown)
     const jsonMatch = tekst.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('Ingen gyldig JSON i svar');
     const result = JSON.parse(jsonMatch[0]);
+    // Sikr at raad altid er et array
+    if (!Array.isArray(result.raad)) result.raad = [];
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (e) {
     console.error('ai-vindanalyse fejl:', e.message);

@@ -1,4 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse,
@@ -89,37 +88,41 @@ exports.handler = async (event, context) => {
 
   const mime = GYLDIGE_MIME.includes(data.mimeType) ? data.mimeType : 'image/jpeg';
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
   try {
-    const message = await Promise.race([
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mime,
-                  data: data.billede,
+    const response = await Promise.race([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'o4-mini',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${mime};base64,${data.billede}`,
+                  },
                 },
-              },
-              { type: 'text', text: SYSTEM_PROMPT },
-            ],
-          }
-        ],
+                { type: 'text', text: 'Analyser dette billede og returner JSON som beskrevet.' },
+              ],
+            },
+          ],
+          response_format: { type: 'json_object' },
+          max_completion_tokens: 2000,
+        }),
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000)),
     ]);
 
-    const tekst = message.content[0].text.trim();
-    const jsonMatch = tekst.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Ingen gyldig JSON i svar');
-    const result = JSON.parse(jsonMatch[0]);
+    const aiData = await response.json();
+    if (aiData.error) throw new Error(aiData.error.message);
+    const result = JSON.parse(aiData.choices[0].message.content);
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (e) {
     console.error('ai-analyser-foto fejl:', e.message);

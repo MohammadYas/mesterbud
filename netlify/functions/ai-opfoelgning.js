@@ -1,4 +1,3 @@
-const Anthropic = require('@anthropic-ai/sdk');
 const { getStore } = require('@netlify/blobs');
 const {
   checkRateLimit, rateLimitResponse,
@@ -94,28 +93,35 @@ exports.handler = async (event, context) => {
     datoSendt = data.datoSendt;
   }
 
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const userPrompt = `Kundenavn: ${kundenavn}
+  const brugerInput = `Kundenavn: ${kundenavn}
 Firmanavn: ${firmanavn || 'ukendt'}
 Opgave: ${opgavebeskrivelse || 'håndværkeropgave'}
 Beløb: ${beloeb ? Math.round(beloeb).toLocaleString('da-DK') + ' kr inkl. moms' : 'ukendt'}
 Sendt dato: ${datoSendt ? new Date(datoSendt).toLocaleDateString('da-DK') : 'for nylig'}`;
 
   try {
-    const message = await Promise.race([
-      anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [
-          { role: 'user', content: userPrompt }
-        ],
+    const response = await Promise.race([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'o4-mini',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: brugerInput },
+          ],
+          max_completion_tokens: 2000,
+        }),
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000)),
     ]);
 
-    const besked = message.content[0].text.trim();
+    const aiData = await response.json();
+    if (aiData.error) throw new Error(aiData.error.message);
+    const besked = aiData.choices[0].message.content.trim();
     // Returner både 'besked' (spec) og 'tekst' (baglæns kompatibilitet med dashboard)
     return { statusCode: 200, headers, body: JSON.stringify({ besked, tekst: besked }) };
   } catch (e) {
