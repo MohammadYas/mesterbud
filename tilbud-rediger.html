@@ -408,7 +408,7 @@ function redigerApp() {
     async gem(status) {
       this.saving = true;
       try {
-        const payload = { ...this.tilbud, status: status || this.tilbud.status, total: this.total, subtotal: this.subtotal, moms: this.moms };
+        const payload = { ...this.tilbud, status: status || this.tilbud.status, total: this.total, subtotal: this.subtotal };
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch('/api/save-tilbud', {
           method: 'POST',

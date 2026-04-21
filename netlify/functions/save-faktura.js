@@ -4,7 +4,7 @@ const {
   parseBody, sanitizeString,
 } = require('./_security');
 
-const GYLDIGE_ENHEDER = ['stk', 'time', 'm²', 'm', 'ls', 'm3', 'kg', 'dag', 'sæt'];
+const GYLDIGE_ENHEDER = ['stk', 'time', 'm²', 'm', 'm³', 'ls', 'm3', 'kg', 'dag', 'sæt'];
 const GYLDIGE_STATUSSER = ['kladde', 'afventer_betaling', 'forfalden', 'betalt', 'betalt_af_kunde'];
 
 exports.handler = async (event, context) => {

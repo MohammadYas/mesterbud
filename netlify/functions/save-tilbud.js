@@ -5,7 +5,7 @@ const {
 } = require('./_security');
 
 // Tilladte enhedsværdier
-const GYLDIGE_ENHEDER = ['stk', 'time', 'm²', 'm', 'ls', 'm3', 'kg'];
+const GYLDIGE_ENHEDER = ['stk', 'time', 'm²', 'm', 'm³', 'ls', 'm3', 'kg', 'dag', 'sæt'];
 
 exports.handler = async (event, context) => {
   const headers = { ...CORS_HEADERS };
@@ -79,9 +79,8 @@ exports.handler = async (event, context) => {
     })).filter(l => l.beskrivelse);
 
     // Beregn totaler server-side (stol ikke på klientens tal)
+    // inkluderMoms bestemmes nedenfor (efter afsender sanering)
     const subtotal = cleanLinjer.reduce((sum, l) => sum + l.antal * l.enhedspris, 0);
-    const momsBeloeb = top.moms ? subtotal * 0.25 : 0;
-    const total = subtotal + momsBeloeb;
 
     // ── Plankvote: Basis = maks. 10 tilbud/måned, Pro = ubegrænset ──
     const erNyt = !top.id;
@@ -131,14 +130,34 @@ exports.handler = async (event, context) => {
       tilbudsId = `MB-${year}-${String(counter).padStart(3, '0')}`;
     }
 
+    // Sanér afsender-felter
+    const afsenderRaw = body.afsender || {};
+    const cleanAfsender = {
+      firmanavn: sanitizeString(afsenderRaw.firmanavn, 100),
+      adresse:   sanitizeString(afsenderRaw.adresse, 200),
+      cvr:       sanitizeString(afsenderRaw.cvr, 20),
+      telefon:   sanitizeString(afsenderRaw.telefon, 30),
+      email:     sanitizeString(afsenderRaw.email, 254).toLowerCase(),
+    };
+
+    // Bestem moms-flag (klient sender inkluderMoms boolean ELLER moms som beløb)
+    const inkluderMoms = body.inkluderMoms !== undefined ? Boolean(body.inkluderMoms) : top.moms;
+    const momsBeloeb = inkluderMoms ? subtotal * 0.25 : 0;
+    const total = subtotal + momsBeloeb;
+
     const tilbud = {
       id: tilbudsId,
       userId,
       titel: top.titel || '',
       status: top.status,
-      noter: top.noter || '',
+      dato: sanitizeString(body.dato || '', 10),
+      gyldigTil: sanitizeString(body.gyldigTil || '', 10),
+      beskrivelse: sanitizeString(body.beskrivelse || '', 500),
+      noter: sanitizeString(body.note || body.noter || '', 2000),
+      betalingsbetingelser: sanitizeString(body.betalingsbetingelser || 'netto14', 30),
       gyldigDage: top.gyldigDage,
-      moms: top.moms,
+      inkluderMoms,
+      afsender: cleanAfsender,
       modtager: cleanModtager,
       linjer: cleanLinjer,
       subtotal,
