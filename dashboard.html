@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <meta name="theme-color" content="#a23900">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
 tailwind.config = {
@@ -31,13 +31,20 @@ tailwind.config = {
 }
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
   body { font-family: 'Plus Jakarta Sans', sans-serif; }
   h1, h2, h3 { font-family: 'Newsreader', serif; }
   [x-cloak] { display: none !important; }
-  .sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all; }
-  .sidebar-link.active { @apply bg-primary text-on-primary; }
-  .sidebar-link:not(.active) { @apply text-on-surface-variant hover:bg-surface-container; }
+  .sidebar-link {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.625rem 1rem; border-radius: 0.5rem;
+    font-size: 0.875rem; font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    width: 100%; text-align: left;
+  }
+  .sidebar-link.active { background: #a23900; color: #ffffff; }
+  .sidebar-link:not(.active) { color: #594138; }
+  .sidebar-link:not(.active):hover { background: #f1ede7; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 </head>
@@ -50,18 +57,21 @@ tailwind.config = {
   if (!s) { window.location.href = '/login.html'; return; }
   try {
     const t = JSON.parse(s);
-    const p = JSON.parse(atob(t.access_token.split('.')[1]));
-    if (p.exp < Date.now() / 1000) {
-      // Try refresh
-      fetch('/.netlify/identity/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(t.refresh_token)
-      }).then(r => r.json()).then(d => {
-        if (d.access_token) localStorage.setItem('gotrue-session', JSON.stringify(d));
-        else { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
-      }).catch(() => { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; });
-    }
+    try {
+      const raw = t.access_token.split('.')[1];
+      const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice((raw.length % 4 || 4) - 2);
+      const p = JSON.parse(atob(b64));
+      if (p.exp < Date.now() / 1000) {
+        fetch('/.netlify/identity/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(t.refresh_token)
+        }).then(r => r.json()).then(d => {
+          if (d.access_token) localStorage.setItem('gotrue-session', JSON.stringify(d));
+          else { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
+        }).catch(() => { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; });
+      }
+    } catch(e) { /* Token decode failed – continue, server validates */ }
   } catch(e) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
 })();
 </script>
@@ -110,10 +120,10 @@ tailwind.config = {
 
     <!-- User info -->
     <div class="p-4 border-t border-outline-variant flex-shrink-0">
-      <!-- Trial/subscription warning -->
-      <div x-show="!userPlan || userPlan === 'none'" x-cloak class="mb-3 bg-error-container text-on-error-container rounded-lg p-3 text-xs">
-        <p class="font-bold mb-1">Prøveperiode udløbet</p>
-        <a href="/konto.html" class="underline font-medium">Vælg abonnement →</a>
+      <!-- No subscription warning -->
+      <div x-show="!userPlan || userPlan === 'none'" x-cloak class="mb-3 bg-surface-container border border-outline-variant rounded-lg p-3 text-xs">
+        <p class="font-bold mb-1 text-on-surface">Gratis konto</p>
+        <a href="/konto.html" class="text-primary underline font-medium">Vælg abonnement →</a>
       </div>
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
@@ -151,12 +161,12 @@ tailwind.config = {
       </a>
     </header>
 
-    <!-- Subscription expired banner -->
+    <!-- No subscription banner -->
     <div x-show="!userPlan || userPlan === 'none'" x-cloak
-      class="bg-error-container text-on-error-container px-6 py-3 text-sm flex items-center gap-3">
-      <span class="material-symbols-outlined text-base">warning</span>
-      <span>Din prøveperiode er udløbet – vælg et abonnement for at fortsætte.</span>
-      <a href="/konto.html" class="font-bold underline ml-auto">Vælg plan →</a>
+      class="bg-surface-container-low border-b border-outline-variant px-6 py-3 text-sm flex items-center gap-3">
+      <span class="material-symbols-outlined text-base text-on-surface-variant">info</span>
+      <span class="text-on-surface-variant">Gratis konto – opgrader for at sende ubegrænsede tilbud.</span>
+      <a href="/konto.html" class="font-bold text-primary hover:underline ml-auto">Vælg plan →</a>
     </div>
     <!-- Gæste-tilbud overført banner -->
     <div x-show="gaestBesked" x-cloak x-transition
@@ -652,7 +662,9 @@ function app() {
       const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
       if (s.access_token) {
         try {
-          const payload = JSON.parse(atob(s.access_token.split('.')[1]));
+          const raw = s.access_token.split('.')[1];
+          const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice((raw.length % 4 || 4) - 2);
+          const payload = JSON.parse(atob(b64));
           this.userEmail = payload.email || '';
           this.userName = payload.user_metadata?.full_name || '';
         } catch(e) {}

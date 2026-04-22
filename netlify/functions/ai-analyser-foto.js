@@ -57,10 +57,15 @@ exports.handler = async (event, context) => {
     const raw = await store.get(`profil/${user.sub}`);
     const profil = raw ? JSON.parse(raw) : {};
     if (profil.plan !== 'pro') {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Kræver Pro-abonnement', kræverPro: true }) };
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'pro_required' }) };
     }
   } catch {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Kunne ikke verificere abonnement' }) };
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY ikke konfigureret');
+    return { statusCode: 503, headers, body: JSON.stringify({ error: 'AI-tjenesten er ikke konfigureret – kontakt support' }) };
   }
 
   const tilladt = await checkOgInkrementerKvote(store, user.sub);

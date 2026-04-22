@@ -112,6 +112,10 @@ tailwind.config = {
       display: none;
     }
   }
+  /* Fjern spinners fra number-inputs i linjer */
+  .field-input[type=number]::-webkit-inner-spin-button,
+  .field-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .field-input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -124,9 +128,12 @@ tailwind.config = {
   if (!s) { window.location.href = '/login.html'; return; }
   try {
     const t = JSON.parse(s);
-    const p = JSON.parse(atob(t.access_token.split('.')[1]));
+    if (!t.access_token) { window.location.href = '/login.html'; return; }
+    const raw = t.access_token.split('.')[1];
+    const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice((raw.length % 4 || 4) - 2);
+    const p = JSON.parse(atob(b64));
     if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
-  } catch(e) { window.location.href = '/login.html'; }
+  } catch(e) { /* Token kan ikke parses – lad siden loade, API validerer */ }
 })();
 </script>
 
@@ -386,24 +393,33 @@ tailwind.config = {
             <label class="field-label">Firmanavn</label>
             <input x-model="tilbud.afsender.firmanavn" type="text" placeholder="Mesterbyg ApS" class="field-input"/>
           </div>
-          <div class="sm:col-span-2">
+          <div class="sm:col-span-2 relative">
             <label class="field-label">Adresse</label>
-            <input x-model="tilbud.afsender.adresse" list="dawa-afsender" type="text"
+            <input x-model="tilbud.afsender.adresse" type="text" autocomplete="off"
               placeholder="Bygmestervej 12, 2400 København NV" class="field-input"
-              @input="hentDawa('afsender', $event.target.value)"/>
-            <datalist id="dawa-afsender">
+              @input="hentDawa('afsender', $event.target.value)"
+              @blur="setTimeout(() => dawaAfsender = [], 200)"
+              @keydown.escape="dawaAfsender = []"/>
+            <ul x-show="dawaAfsender.length" x-cloak
+              class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
               <template x-for="f in dawaAfsender" :key="f.tekst">
-                <option :value="f.tekst"></option>
+                <li @click="tilbud.afsender.adresse = f.tekst; dawaAfsender = []"
+                  class="px-4 py-2.5 text-sm cursor-pointer hover:bg-surface-container-low flex items-center gap-2 border-b border-outline-variant/10 last:border-0">
+                  <span class="material-symbols-outlined text-on-surface-variant text-sm">location_on</span>
+                  <span x-text="f.tekst"></span>
+                </li>
               </template>
-            </datalist>
+            </ul>
           </div>
           <div>
             <label class="field-label">CVR-nummer</label>
-            <input x-model="tilbud.afsender.cvr" type="text" placeholder="12345678" class="field-input"/>
+            <input x-model="tilbud.afsender.cvr" type="text" placeholder="12345678" inputmode="numeric" maxlength="8" class="field-input"/>
           </div>
           <div>
             <label class="field-label">Telefon</label>
-            <input x-model="tilbud.afsender.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
+            <input :value="tilbud.afsender.telefon" type="tel" placeholder="12 34 56 78"
+              @input="tilbud.afsender.telefon = formatTelefon($event.target.value)"
+              class="field-input" inputmode="tel"/>
           </div>
           <div class="sm:col-span-2">
             <label class="field-label">E-mail</label>
@@ -413,27 +429,7 @@ tailwind.config = {
       </section>
 
       <!-- Modtager -->
-      <section class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-outline-variant/20 shadow-sm" x-data="{
-        cvrLoader: false,
-        cvrFejl: '',
-        async hentCVR() {
-          const cvr = ($root.tilbud.modtager.cvr || '').replace(/\s/g, '');
-          if (!/^\d{8}$/.test(cvr)) { this.cvrFejl = 'CVR-nummer skal være 8 cifre'; return; }
-          this.cvrLoader = true; this.cvrFejl = '';
-          try {
-            const res = await fetch('/api/hent-cvr?cvr=' + cvr);
-            const d = await res.json();
-            if (d.fejl) { this.cvrFejl = d.fejl; }
-            else {
-              if (d.navn) $root.tilbud.modtager.navn = d.navn;
-              if (d.adresse || d.postnr || d.by) $root.tilbud.modtager.adresse = [d.adresse, d.postnr, d.by].filter(Boolean).join(', ');
-              if (d.telefon) $root.tilbud.modtager.telefon = d.telefon;
-              if (d.email) $root.tilbud.modtager.email = d.email;
-            }
-          } catch(e) { this.cvrFejl = 'CVR-opslag fejlede – prøv igen'; }
-          this.cvrLoader = false;
-        }
-      }">
+      <section class="bg-surface-container-lowest rounded-xl p-4 sm:p-5 border border-outline-variant/20 shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-bold flex items-center gap-2">
             <span class="material-symbols-outlined text-primary text-lg">person</span>
@@ -477,20 +473,29 @@ tailwind.config = {
           <!-- Telefon -->
           <div>
             <label class="field-label">Telefon</label>
-            <input x-model="tilbud.modtager.telefon" type="tel" placeholder="+45 12 34 56 78" class="field-input"/>
+            <input :value="tilbud.modtager.telefon" type="tel" placeholder="12 34 56 78"
+              @input="tilbud.modtager.telefon = formatTelefon($event.target.value)"
+              class="field-input" inputmode="tel"/>
           </div>
 
           <!-- Adresse -->
-          <div :class="tilbud.modtager.erVirksomhed ? '' : 'sm:col-span-2'">
+          <div :class="tilbud.modtager.erVirksomhed ? '' : 'sm:col-span-2'" class="relative">
             <label class="field-label">Adresse</label>
-            <input x-model="tilbud.modtager.adresse" list="dawa-modtager" type="text"
+            <input x-model="tilbud.modtager.adresse" type="text" autocomplete="off"
               placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"
-              @input="hentDawa('modtager', $event.target.value)"/>
-            <datalist id="dawa-modtager">
+              @input="hentDawa('modtager', $event.target.value)"
+              @blur="setTimeout(() => dawaModtager = [], 200)"
+              @keydown.escape="dawaModtager = []"/>
+            <ul x-show="dawaModtager.length" x-cloak
+              class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
               <template x-for="f in dawaModtager" :key="f.tekst">
-                <option :value="f.tekst"></option>
+                <li @click="tilbud.modtager.adresse = f.tekst; dawaModtager = []"
+                  class="px-4 py-2.5 text-sm cursor-pointer hover:bg-surface-container-low flex items-center gap-2 border-b border-outline-variant/10 last:border-0">
+                  <span class="material-symbols-outlined text-on-surface-variant text-sm">location_on</span>
+                  <span x-text="f.tekst"></span>
+                </li>
               </template>
-            </datalist>
+            </ul>
           </div>
 
           <!-- CVR – kun virksomheder -->
@@ -697,7 +702,8 @@ tailwind.config = {
 
       <!-- Actions mobile -->
       <div class="flex flex-col sm:flex-row gap-3 lg:hidden pb-6">
-        <button @click="gem('kladde')" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all">
+        <button @click="gem('kladde')" :disabled="saving" class="flex-1 py-3 rounded-lg border-2 border-outline-variant font-bold text-sm active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+          <span x-show="saving" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
           Gem som kladde
         </button>
         <button @click="downloadPDF()" class="flex-1 py-3 rounded-lg border-2 border-primary text-primary font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2">
@@ -1021,6 +1027,9 @@ function tilbudApp() {
     toast: { show: false, msg: '', icon: 'check_circle' },
     previewOpen: false,
     userPlan: 'trial',
+    // CVR-opslag
+    cvrLoader: false,
+    cvrFejl: '',
     // AI state
     optager: false,
     transkription: '',
@@ -1071,6 +1080,25 @@ function tilbudApp() {
       // Auto-save hvert 30. sekund hvis der er ændringer
       this.autoSaveTimer = setInterval(() => this.autoGem(), 30000);
       this.$watch('tilbud', () => { this.autoSaved = false; this._harUgemmede = true; }, { deep: true });
+    },
+
+    async hentCVR() {
+      const cvr = (this.tilbud.modtager.cvr || '').replace(/\s/g, '');
+      if (!/^\d{8}$/.test(cvr)) { this.cvrFejl = 'CVR-nummer skal være 8 cifre'; return; }
+      this.cvrLoader = true; this.cvrFejl = '';
+      try {
+        const res = await fetch('/api/hent-cvr?cvr=' + cvr);
+        const d = await res.json();
+        if (d.fejl) { this.cvrFejl = d.fejl; }
+        else {
+          if (d.navn) this.tilbud.modtager.navn = d.navn;
+          if (d.adresse || d.postnr || d.by) this.tilbud.modtager.adresse = [d.adresse, d.postnr, d.by].filter(Boolean).join(', ');
+          if (d.telefon) this.tilbud.modtager.telefon = d.telefon;
+          if (d.email) this.tilbud.modtager.email = d.email;
+          this.visToast('Virksomhedsdata hentet', 'check_circle');
+        }
+      } catch(e) { this.cvrFejl = 'CVR-opslag fejlede – prøv igen'; }
+      this.cvrLoader = false;
     },
 
     async loadProfil() {
@@ -1155,15 +1183,16 @@ function tilbudApp() {
 
     // --- Fælles AI-kald + animation ---
     async kaldiAI(endpoint, payload) {
+      const token = this.getToken();
+      if (!token) return;
       this.aiLoading = true;
       this.aiFejl = '';
       this.fotoNoter = '';
       this.visGenererIgen = false;
       try {
-        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -1184,8 +1213,10 @@ function tilbudApp() {
             await new Promise(r => setTimeout(r, 150));
             this.tilbud.linjer.push({ ...data.linjer[i] });
           }
+          // Ryd AI-inputfeltet og vis bekræftelse
+          this.aiBeskrivelseInput = '';
           this.visGenererIgen = true;
-          this.visToast('AI genererede ' + data.linjer.length + ' linjer', 'auto_awesome');
+          this.visToast('AI genererede ' + data.linjer.length + ' linjer ✓', 'auto_awesome');
         } else {
           this.aiFejl = 'AI returnerede ingen linjer – prøv igen med mere detalje.';
         }
@@ -1288,8 +1319,44 @@ function tilbudApp() {
       return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK' }).format(v || 0);
     },
 
+    formatTelefon(raw) {
+      // Bevar +45 præfiks hvis det er der
+      let prefix = '';
+      let val = raw || '';
+      if (val.startsWith('+45')) { prefix = '+45 '; val = val.slice(3); }
+      else if (val.startsWith('0045')) { prefix = '+45 '; val = val.slice(4); }
+      // Behold kun cifre
+      val = val.replace(/\D/g, '').slice(0, 8);
+      // Formater som XX XX XX XX
+      val = val.replace(/^(\d{2})(\d{2})(\d{2})(\d{2})$/, '$1 $2 $3 $4')
+               .replace(/^(\d{2})(\d{2})(\d{2})(\d{1,2})$/, '$1 $2 $3 $4')
+               .replace(/^(\d{2})(\d{2})(\d{1,2})$/, '$1 $2 $3')
+               .replace(/^(\d{2})(\d{1,2})$/, '$1 $2');
+      return (prefix + val).trim();
+    },
+
     betalingLabel(v) {
       return { 'netto8': 'Netto 8 dage', 'netto14': 'Netto 14 dage', 'netto30': 'Netto 30 dage', 'straks': 'Betales straks' }[v] || 'Netto 14 dage';
+    },
+
+    getToken() {
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        if (!s.access_token) { window.location.href = '/login.html'; return null; }
+        try {
+          // JWT bruger base64URL (-/_) – konverter til standard base64 (+//)
+          const raw = s.access_token.split('.')[1];
+          const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice((raw.length % 4 || 4) - 2);
+          const p = JSON.parse(atob(b64));
+          if (p.exp < Date.now() / 1000) {
+            localStorage.removeItem('gotrue-session');
+            this.visToast('Session udløbet – logger dig ind igen...', 'lock');
+            setTimeout(() => { window.location.href = '/login.html'; }, 1500);
+            return null;
+          }
+        } catch { /* Kan ikke decode token – forsøg alligevel, server validerer */ }
+        return s.access_token;
+      } catch { window.location.href = '/login.html'; return null; }
     },
 
     async gem(status) {
@@ -1297,13 +1364,14 @@ function tilbudApp() {
         this.visToast('Udfyld firmanavn inden afsendelse', 'warning');
         return;
       }
+      const token = this.getToken();
+      if (!token) return;
       this.saving = true;
       try {
         const payload = { ...this.tilbud, status, total: this.total, subtotal: this.subtotal };
-        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch('/api/save-tilbud', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const data = await res.json();

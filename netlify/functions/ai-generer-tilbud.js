@@ -57,6 +57,12 @@ exports.handler = async (event, context) => {
   });
   if (!valid) return { statusCode: 400, headers, body: JSON.stringify({ error: errors.join(', ') }) };
 
+  // Tjek API-nøgle
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY ikke konfigureret');
+    return { statusCode: 503, headers, body: JSON.stringify({ error: 'AI-tjenesten er ikke konfigureret – kontakt support' }) };
+  }
+
   const inputTekst = data.beskrivelse || data.transkription || '';
   const brancheTekst = data.branche ? `\nBranche: ${data.branche}` : '';
 
