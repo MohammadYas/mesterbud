@@ -46,10 +46,13 @@ exports.handler = async (event) => {
             const sub = await stripe.subscriptions.retrieve(session.subscription);
             if (sub.trial_end) {
               profil.trialSlutter = new Date(sub.trial_end * 1000).toISOString();
-              profil.plan = plan; // behold plan under trial
+              // Sæt plan til 'trial' under prøveperioden; skifter til 'basis'/'pro' ved trial-slut via subscription.updated
+              profil.plan = 'trial';
+              profil.planEfterTrial = plan; // gem hvad plan bliver efter trial
             }
             profil.naesteBetaling = new Date(sub.current_period_end * 1000)
               .toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
+            profil.nasteBetalingAmount = plan === 'pro' ? 299 : 149;
           } catch (e) {}
         }
 
@@ -90,7 +93,22 @@ exports.handler = async (event) => {
           [process.env.STRIPE_PRICE_BASIS]: 'basis',
           [process.env.STRIPE_PRICE_PRO]: 'pro',
         };
-        const newPlan = planMap[newPlanId];
+        let newPlan = planMap[newPlanId];
+        // Hvis trial er slut, brug planEfterTrial som fallback
+        if (!newPlan && sub.status === 'active' && !sub.trial_end) newPlan = null; // lad den stå som trial
+        if (!newPlan) {
+          // Prøv at finde plan fra profil.planEfterTrial
+          const list2 = await store.list({ prefix: 'profil/' });
+          for (const blob of list2.blobs) {
+            const raw2 = await store.get(blob.key);
+            if (!raw2) continue;
+            const p2 = JSON.parse(raw2);
+            if (p2.stripeCustomerId === customerId && p2.planEfterTrial) {
+              newPlan = p2.planEfterTrial;
+              break;
+            }
+          }
+        }
         if (!newPlan) break;
 
         const list = await store.list({ prefix: 'profil/' });

@@ -31,7 +31,7 @@ exports.handler = async (event, context) => {
 
   try {
     const raw = await store.get(`profil/${userId}`);
-    const profil = raw ? JSON.parse(raw) : { plan: 'trial', oprettet: new Date().toISOString() };
+    const profil = raw ? JSON.parse(raw) : { plan: 'none', oprettet: new Date().toISOString() };
 
     if (body.virksomhed && typeof body.virksomhed === 'object') {
       const v = body.virksomhed;

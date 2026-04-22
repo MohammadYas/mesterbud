@@ -119,9 +119,13 @@ tailwind.config = {
   if (!s) { window.location.href = '/login.html'; return; }
   try {
     const t = JSON.parse(s);
-    const p = JSON.parse(atob(t.access_token.split('.')[1]));
-    if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
-  } catch(e) { window.location.href = '/login.html'; }
+    try {
+      const raw = t.access_token.split('.')[1];
+      const b64 = raw.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice((raw.length%4||4)-2);
+      const p = JSON.parse(atob(b64));
+      if (p.exp < Date.now()/1000) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
+    } catch(e) { /* Token decode failed – continue */ }
+  } catch(e) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
 })();
 </script>
 

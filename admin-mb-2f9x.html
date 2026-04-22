@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow"/>
 <title>Admin – Mesterbud</title>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <script>
 tailwind.config = {
@@ -27,7 +27,7 @@ tailwind.config = {
 }
 </script>
 <style>
-  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+  .material-symbols-outlined{font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
   body{font-family:'Plus Jakarta Sans',sans-serif}
   h1,h2,h3{font-family:'Newsreader',serif}
   [x-cloak]{display:none!important}
@@ -49,8 +49,12 @@ tailwind.config = {
   if (!s) { window.location.href = '/login.html'; return; }
   try {
     const t = JSON.parse(s);
-    const p = JSON.parse(atob(t.access_token.split('.')[1]));
-    if (p.exp < Date.now()/1000) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
+    try {
+      const raw = t.access_token.split('.')[1];
+      const b64 = raw.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice((raw.length%4||4)-2);
+      const p = JSON.parse(atob(b64));
+      if (p.exp < Date.now()/1000) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
+    } catch(e) { /* Token decode failed – continue */ }
   } catch(e) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
 })();
 </script>
@@ -725,7 +729,9 @@ function adminApp() {
       // Hent email fra JWT
       try {
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
-        const p = JSON.parse(atob(s.access_token.split('.')[1]));
+        const raw = s.access_token.split('.')[1];
+        const b64 = raw.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice((raw.length%4||4)-2);
+        const p = JSON.parse(atob(b64));
         this.adminEmail = p.email || '';
       } catch {}
 

@@ -115,9 +115,13 @@ tailwind.config = {
   if (!s) { window.location.href = '/login.html'; return; }
   try {
     const t = JSON.parse(s);
-    const p = JSON.parse(atob(t.access_token.split('.')[1]));
-    if (p.exp < Date.now() / 1000) { localStorage.removeItem('gotrue-session'); window.location.href = '/login.html'; }
-  } catch(e) { window.location.href = '/login.html'; }
+    try {
+      const raw = t.access_token.split('.')[1];
+      const b64 = raw.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice((raw.length%4||4)-2);
+      const p = JSON.parse(atob(b64));
+      if (p.exp < Date.now()/1000) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
+    } catch(e) { /* Token decode failed – continue */ }
+  } catch(e) { localStorage.removeItem('gotrue-session'); window.location.href='/login.html'; }
 })();
 </script>
 
@@ -388,15 +392,38 @@ tailwind.config = {
 
           <!-- TRIAL PLAN: trial -->
           <div x-show="plan === 'trial'" class="space-y-4">
-            <div class="flex items-start gap-4 bg-blue-50 border border-blue-200 rounded-xl p-5">
-              <span class="material-symbols-outlined text-2xl mt-0.5 text-blue-600">timer</span>
-              <div>
-                <p class="font-bold mb-1 text-blue-900">Du er i prøveperiode</p>
-                <p class="text-sm text-blue-700" x-show="dageTilbage !== null" x-text="'Du har ' + dageTilbage + ' dage tilbage. Vælg et abonnement nedenfor for at fortsætte efter prøveperioden.'"></p>
-                <p class="text-sm text-blue-700" x-show="dageTilbage === null">Vælg et abonnement nedenfor for at fortsætte efter prøveperioden.</p>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
+              <div class="flex items-start gap-4 p-5">
+                <span class="material-symbols-outlined text-2xl mt-0.5 text-blue-600">timer</span>
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold mb-1 text-blue-900">Gratis prøveperiode aktiv</p>
+                  <p class="text-sm text-blue-700" x-show="dageTilbage !== null" x-text="dageTilbage + ' dage tilbage af din prøveperiode'"></p>
+                  <p class="text-sm text-blue-700" x-show="dageTilbage === null">14 dages gratis prøveperiode</p>
+                </div>
+              </div>
+              <div class="border-t border-blue-200 px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-blue-50/50">
+                <div>
+                  <p class="text-xs text-blue-600 font-bold uppercase tracking-wide mb-0.5">Første betaling</p>
+                  <p class="text-sm font-bold text-blue-900" x-text="naesteBetaling || '—'"></p>
+                </div>
+                <div>
+                  <p class="text-xs text-blue-600 font-bold uppercase tracking-wide mb-0.5">Beløb</p>
+                  <p class="text-sm font-bold text-blue-900" x-text="(nasteBetalingAmount || 149) + ' kr/md'"></p>
+                </div>
+                <div>
+                  <p class="text-xs text-blue-600 font-bold uppercase tracking-wide mb-0.5">Plan efter trial</p>
+                  <p class="text-sm font-bold text-blue-900" x-text="planEfterTrial === 'pro' ? 'Pro' : 'Basis'"></p>
+                </div>
               </div>
             </div>
-            <p class="text-center text-xs text-on-surface-variant">Ingen binding · Opsig til enhver tid</p>
+            <div class="flex gap-3">
+              <button @click="aabKundePortal()"
+                class="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-base">open_in_new</span>
+                Administrer i Stripe
+              </button>
+            </div>
+            <p class="text-center text-xs text-on-surface-variant">Ingen binding · Opsig til enhver tid · Gratis i prøveperioden</p>
           </div>
 
           <!-- Plan comparison cards (shown for none + trial) -->
@@ -769,8 +796,10 @@ function kontoApp() {
         const res = await fetch('/api/get-user', { headers: { 'Authorization': 'Bearer ' + s.access_token } });
         if (res.ok) {
           const u = await res.json();
-          this.plan = u.plan || 'trial';
+          this.plan = u.plan || 'none';
           this.naesteBetaling = u.naesteBetaling || '';
+          this.nasteBetalingAmount = u.nasteBetalingAmount || (u.planEfterTrial === 'pro' ? 299 : 149);
+          this.planEfterTrial = u.planEfterTrial || '';
           this.trialSlutter = u.trialSlutter || null;
           this.dageTilbage = u.dageTilbage ?? null;
           this.stripeStatus = u.stripeStatus || null;
@@ -813,7 +842,9 @@ function kontoApp() {
       this.checkoutLoading = true;
       try {
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
-        const payload = JSON.parse(atob(s.access_token.split('.')[1]));
+        const raw = s.access_token.split('.')[1];
+        const b64 = raw.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice((raw.length%4||4)-2);
+        const payload = JSON.parse(atob(b64));
         const res = await fetch('/api/create-checkout', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },

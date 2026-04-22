@@ -397,10 +397,10 @@ tailwind.config = {
             <label class="field-label">Adresse</label>
             <input x-model="tilbud.afsender.adresse" type="text" autocomplete="off"
               placeholder="Bygmestervej 12, 2400 København NV" class="field-input"
-              @input="hentDawa('afsender', $event.target.value)"
+              @input.debounce.300ms="hentDawa('afsender', tilbud.afsender.adresse)"
               @blur="setTimeout(() => dawaAfsender = [], 200)"
               @keydown.escape="dawaAfsender = []"/>
-            <ul x-show="dawaAfsender.length" x-cloak
+            <ul x-show="dawaAfsender.length"
               class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
               <template x-for="f in dawaAfsender" :key="f.tekst">
                 <li @click="tilbud.afsender.adresse = f.tekst; dawaAfsender = []"
@@ -483,10 +483,10 @@ tailwind.config = {
             <label class="field-label">Adresse</label>
             <input x-model="tilbud.modtager.adresse" type="text" autocomplete="off"
               placeholder="Strandvejen 4, 2900 Hellerup" class="field-input"
-              @input="hentDawa('modtager', $event.target.value)"
+              @input.debounce.300ms="hentDawa('modtager', tilbud.modtager.adresse)"
               @blur="setTimeout(() => dawaModtager = [], 200)"
               @keydown.escape="dawaModtager = []"/>
-            <ul x-show="dawaModtager.length" x-cloak
+            <ul x-show="dawaModtager.length"
               class="absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
               <template x-for="f in dawaModtager" :key="f.tekst">
                 <li @click="tilbud.modtager.adresse = f.tekst; dawaModtager = []"
@@ -1286,20 +1286,13 @@ function tilbudApp() {
     },
 
     async hentDawa(felt, q) {
-      if (q.length < 3) {
-        if (felt === 'afsender') this.dawaAfsender = [];
-        else this.dawaModtager = [];
-        return;
-      }
-      const timerKey = felt === 'afsender' ? '_dawaTA' : '_dawaTM';
       const resultKey = felt === 'afsender' ? 'dawaAfsender' : 'dawaModtager';
-      clearTimeout(this[timerKey]);
-      this[timerKey] = setTimeout(async () => {
-        try {
-          const r = await fetch('https://api.dataforsyningen.dk/adresser/autocomplete?q=' + encodeURIComponent(q) + '&per_side=6&type=adresse');
-          this[resultKey] = await r.json();
-        } catch {}
-      }, 300);
+      if (!q || q.length < 2) { this[resultKey] = []; return; }
+      try {
+        const r = await fetch('https://dawa.aws.dk/adresser/autocomplete?q=' + encodeURIComponent(q) + '&per_side=6');
+        const data = await r.json();
+        this[resultKey] = Array.isArray(data) ? data : [];
+      } catch { this[resultKey] = []; }
     },
 
     get subtotal() {
