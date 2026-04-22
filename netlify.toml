@@ -1,0 +1,296 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[[redirects]]
+  from = "/api/save-tilbud"
+  to = "/.netlify/functions/save-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-tilbud"
+  to = "/.netlify/functions/get-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-tilbud-public"
+  to = "/.netlify/functions/get-tilbud-public"
+  status = 200
+
+[[redirects]]
+  from = "/api/update-tilbud-status"
+  to = "/.netlify/functions/update-tilbud-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-user"
+  to = "/.netlify/functions/get-user"
+  status = 200
+
+[[redirects]]
+  from = "/api/save-user"
+  to = "/.netlify/functions/save-user"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-checkout"
+  to = "/.netlify/functions/create-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/stripe-webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer-portal"
+  to = "/.netlify/functions/customer-portal"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-generer-tilbud"
+  to = "/.netlify/functions/ai-generer-tilbud"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-analyser-foto"
+  to = "/.netlify/functions/ai-analyser-foto"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-opfoelgning"
+  to = "/.netlify/functions/ai-opfoelgning"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-vindanalyse"
+  to = "/.netlify/functions/ai-vindanalyse"
+  status = 200
+
+[[redirects]]
+  from = "/api/hent-cvr"
+  to = "/.netlify/functions/hent-cvr"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-opfoelgning"
+  to = "/.netlify/functions/send-opfoelgning"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-get-stats"
+  to = "/.netlify/functions/admin-get-stats"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-get-users"
+  to = "/.netlify/functions/admin-get-users"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-get-revenue"
+  to = "/.netlify/functions/admin-get-revenue"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-get-activity"
+  to = "/.netlify/functions/admin-get-activity"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-action"
+  to = "/.netlify/functions/admin-action"
+  status = 200
+
+[[redirects]]
+  from = "/api/resend-bekraeftelse"
+  to = "/.netlify/functions/resend-bekraeftelse"
+  status = 200
+
+[[redirects]]
+  from = "/api/delete-account"
+  to = "/.netlify/functions/delete-account"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin-send-mail"
+  to = "/.netlify/functions/admin-send-mail"
+  status = 200
+
+[[redirects]]
+  from = "/api/save-faktura"
+  to = "/.netlify/functions/save-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-faktura"
+  to = "/.netlify/functions/get-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-faktura"
+  to = "/.netlify/functions/send-faktura"
+  status = 200
+
+[[redirects]]
+  from = "/api/send-rykker"
+  to = "/.netlify/functions/send-rykker"
+  status = 200
+
+[functions."check-forfald"]
+  schedule = "0 2 * * *"
+
+# Clean URL redirects (ingen .html i URL)
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/signup"
+  to = "/signup.html"
+  status = 200
+
+[[redirects]]
+  from = "/konto"
+  to = "/konto.html"
+  status = 200
+
+[[redirects]]
+  from = "/faktura"
+  to = "/faktura.html"
+  status = 200
+
+[[redirects]]
+  from = "/fakturaer"
+  to = "/dashboard.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Cache statiske assets 1 år
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Branch clean URL redirects
+[[redirects]]
+  from = "/brancher"
+  to = "/brancher/"
+  status = 301
+
+[[redirects]]
+  from = "/brancher/maler"
+  to = "/brancher/maler.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/vvs"
+  to = "/brancher/vvs.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/elektriker"
+  to = "/brancher/elektriker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/toemrer"
+  to = "/brancher/toemrer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/murer"
+  to = "/brancher/murer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/tagdaekker"
+  to = "/brancher/tagdaekker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/gulvlaegger"
+  to = "/brancher/gulvlaegger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/anlaegsgartner"
+  to = "/brancher/anlaegsgartner.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/mekaniker"
+  to = "/brancher/mekaniker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/kloakmester"
+  to = "/brancher/kloakmester.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/snedker"
+  to = "/brancher/snedker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/blikkenslager"
+  to = "/brancher/blikkenslager.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/glarmester"
+  to = "/brancher/glarmester.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/isolatoer"
+  to = "/brancher/isolatoer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/brolaegger"
+  to = "/brancher/brolaegger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/laasesmed"
+  to = "/brancher/laasesmed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/smed"
+  to = "/brancher/smed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/stilladsbygger"
+  to = "/brancher/stilladsbygger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/servicevirksomhed"
+  to = "/brancher/servicevirksomhed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/anden-haandvaerker"
+  to = "/brancher/anden-haandvaerker.html"
+  status = 200
