@@ -148,13 +148,13 @@ async function sendNotifikation({ type, til, data, notifPraeferencer } = {}) {
   // Tjek brugerens præferencer (default: alt tilladt)
   if (notifPraeferencer) {
     const matrice = {
-      'dokument_set':            'setNotif',
-      'tilbud_accepteret':       'accepteretNotif',
-      'tilbud_afvist':           'afvistNotif',
-      'tilbud_udloeber_snart':   'udloeberNotif',
-      'faktura_forfalder_snart': 'forfaldSnarNotif',
-      'faktura_forfalden':       'forfaldNotif',
-      'faktura_betalt_af_kunde': 'betaltNotif',
+      'dokument_set':            'dokument_set',
+      'tilbud_accepteret':       'tilbud_accepteret',
+      'tilbud_afvist':           'tilbud_afvist',
+      'tilbud_udloeber_snart':   'tilbud_udloeber_snart',
+      'faktura_forfalder_snart': 'faktura_forfalder_snart',
+      'faktura_forfalden':       'faktura_forfalden',
+      'faktura_betalt_af_kunde': 'faktura_betalt_af_kunde',
     };
     const felt = matrice[type];
     if (felt && notifPraeferencer[felt] === false) return;

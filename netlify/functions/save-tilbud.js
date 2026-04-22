@@ -50,7 +50,7 @@ exports.handler = async (event, context) => {
     const { valid, errors, data: top } = validateSchema(body, {
       id:          { type: 'string', maxLen: 30 },
       titel:       { type: 'string', maxLen: 200 },
-      status:      { type: 'string', enum: ['kladde', 'sendt', 'accepteret', 'afvist'], default: 'kladde' },
+      status:      { type: 'string', enum: ['kladde', 'sendt', 'set', 'accepteret', 'afvist', 'udloebet'], default: 'kladde' },
       noter:       { type: 'string', maxLen: 2000 },
       gyldigDage:  { type: 'number', min: 1, max: 365, default: 30 },
       moms:        { type: 'boolean', default: true },
@@ -168,6 +168,11 @@ exports.handler = async (event, context) => {
       // Bevar kundeSvar og opfølgning hvis eksisterer
       ...(body.kundeResponse ? { kundeResponse: body.kundeResponse } : {}),
       ...(body.opfoelgningsendt ? { opfoelgningsendt: body.opfoelgningsendt } : {}),
+      // Bevar tracking + token fra eksisterende tilbud
+      ...(body.publicToken ? { publicToken: body.publicToken } : {}),
+      ...(body.foersteSetDato ? { foersteSetDato: body.foersteSetDato } : {}),
+      ...(body.aabninger ? { aabninger: body.aabninger } : {}),
+      ...(body.sendt ? { sendt: body.sendt } : {}),
       // Virksomhedsinfo snapshot (fra konto)
       ...(body.virksomhed ? { virksomhed: body.virksomhed } : {}),
     };

@@ -451,7 +451,9 @@ function redigerApp() {
     async gem(status) {
       this.saving = true;
       try {
-        const payload = { ...this.tilbud, status: status || this.tilbud.status, total: this.total, subtotal: this.subtotal };
+        // 'set' og 'udloebet' gemmes som-de-er; hvis ingen status givet brug eksisterende
+        const gemStatus = status || this.tilbud.status || 'kladde';
+        const payload = { ...this.tilbud, status: gemStatus, total: this.total, subtotal: this.subtotal };
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
         const res = await fetch('/api/save-tilbud', {
           method: 'POST',
@@ -459,8 +461,14 @@ function redigerApp() {
           body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (data.tilbud) { this.autoSaved = true; this.visToast('Gemt', 'check_circle'); }
-      } catch(e) { this.visToast('Fejl ved gemning', 'error'); }
+        if (!res.ok) {
+          const msg = res.status === 401 ? 'Session udløbet – log ud og ind igen' : (data.error || 'Fejl ved gemning');
+          this.visToast(msg, 'error');
+        } else if (data.tilbud) {
+          this.autoSaved = true;
+          this.visToast('Gemt', 'check_circle');
+        }
+      } catch(e) { this.visToast('Fejl ved gemning – tjek forbindelsen', 'error'); }
       this.saving = false;
     },
 
@@ -468,9 +476,13 @@ function redigerApp() {
 
     async send() {
       await this.gem('sendt');
-      const link = window.location.origin + '/tilbud-preview.html?id=' + this.tilbud.id;
-      await navigator.clipboard.writeText(link).catch(() => {});
-      this.visToast('Link kopieret!', 'link');
+      if (this.tilbud.publicToken) {
+        const link = window.location.origin + '/tilbud-preview.html?id=' + this.tilbud.id + '&token=' + this.tilbud.publicToken;
+        await navigator.clipboard.writeText(link).catch(() => {});
+        this.visToast('Forhåndsvisningslink kopieret!', 'link');
+      } else {
+        this.visToast('Brug "Send" knappen på dashboard for at sende til kunden', 'info');
+      }
     },
 
     visToast(msg, icon = 'check_circle') {

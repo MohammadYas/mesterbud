@@ -448,7 +448,7 @@ tailwind.config = {
               </div>
               <ul class="space-y-2 text-sm mb-5">
                 <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Ubegrænsede tilbud</li>
-                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> 8 brancheskabeloner</li>
+                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> 8 tilbud per måned</li>
                 <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Digital signatur fra kunden</li>
                 <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> PDF-download</li>
                 <li class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-base">done</span> Tilbud på mobilen</li>
@@ -704,6 +704,10 @@ tailwind.config = {
             Adgangskode opdateret
           </div>
           <div>
+            <label class="field-label">Nuværende adgangskode</label>
+            <input x-model="gammeltPw" type="password" placeholder="Din nuværende adgangskode" class="field-input"/>
+          </div>
+          <div>
             <label class="field-label">Ny adgangskode</label>
             <input x-model="nyPw" type="password" placeholder="Mindst 8 tegn" class="field-input"/>
           </div>
@@ -712,7 +716,7 @@ tailwind.config = {
             <input x-model="nyPw2" type="password" placeholder="••••••••" class="field-input"/>
           </div>
           <div class="flex justify-end">
-            <button @click="skiftAdgangskode()" :disabled="!nyPw || !nyPw2 || pwLoading"
+            <button @click="skiftAdgangskode()" :disabled="!gammeltPw || !nyPw || !nyPw2 || pwLoading"
               class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all disabled:opacity-60">
               <span x-show="pwLoading" class="material-symbols-outlined text-sm animate-spin">progress_activity</span>
               Opdater adgangskode
@@ -862,6 +866,7 @@ function kontoApp() {
       { key: 'faktura_betalt_af_kunde',label: 'Faktura markeret betalt',    desc: 'Besked når kunden bekræfter betaling via kundelinket' },
     ],
     checkoutLoading: false,
+    gammeltPw: '',
     nyPw: '',
     nyPw2: '',
     pwLoading: false,
@@ -870,6 +875,11 @@ function kontoApp() {
     toast: { show: false, msg: '', icon: 'check_circle' },
 
     async init() {
+      // Åbn specifik fane via URL-param ?tab=abonnement
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab && ['profil','abonnement','indstillinger','notifikationer','konto'].includes(tab)) {
+        this.aktuelFane = tab;
+      }
       await this.hentBruger();
     },
 
@@ -977,17 +987,29 @@ function kontoApp() {
     async skiftAdgangskode() {
       this.pwError = '';
       this.pwSuccess = false;
+      if (!this.gammeltPw) { this.pwError = 'Indtast din nuværende adgangskode.'; return; }
       if (this.nyPw !== this.nyPw2) { this.pwError = 'Adgangskoderne stemmer ikke overens.'; return; }
       if (this.nyPw.length < 8) { this.pwError = 'Adgangskoden skal være mindst 8 tegn.'; return; }
       this.pwLoading = true;
       try {
         const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        // Verificér nuværende adgangskode ved at logge ind med den
+        const checkRes = await fetch('/.netlify/identity/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ grant_type: 'password', username: s.email || '', password: this.gammeltPw })
+        });
+        if (!checkRes.ok) {
+          this.pwError = 'Nuværende adgangskode er forkert.';
+          this.pwLoading = false;
+          return;
+        }
         const res = await fetch('/.netlify/identity/user', {
           method: 'PUT',
           headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: this.nyPw })
         });
-        if (res.ok) { this.pwSuccess = true; this.nyPw = ''; this.nyPw2 = ''; }
+        if (res.ok) { this.pwSuccess = true; this.gammeltPw = ''; this.nyPw = ''; this.nyPw2 = ''; }
         else { this.pwError = 'Fejl ved skift af adgangskode – prøv igen.'; }
       } catch(e) { this.pwError = 'Netværksfejl.'; }
       this.pwLoading = false;
