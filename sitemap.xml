@@ -1,6 +1,27 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://mesterbud.dk/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://mesterbud.dk/login.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://mesterbud.dk/signup.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/maler</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/vvs</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/elektriker</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/toemrer</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/murer</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/tagdaekker</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/gulvlaegger</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/anlaegsgartner</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/mekaniker</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/kloakmester</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/snedker</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/blikkenslager</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/glarmester</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/isolatoer</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/brolaegger</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/laasesmed</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/smed</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/stilladsbygger</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/servicevirksomhed</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://mesterbud.dk/brancher/anden-haandvaerker</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

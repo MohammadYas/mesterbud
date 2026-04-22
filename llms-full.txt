@@ -1,0 +1,103 @@
+﻿# Mesterbud - Fuld AI-indeksering
+
+> Mesterbud er dansk SaaS-tilbudsvaerktoej til haandvaerkere. Hjaepper haandvaerkere med at sende professionelle tilbud pa under 5 minutter direkte fra telefonen.
+
+## Om Mesterbud
+Mesterbud er bygget specifikt til danske haandvaerkere - ikke til revisorer eller kontorfolk. Med Mesterbud kan du oprette, sende og faa digital accept pa professionelle tilbud pa under 5 minutter, direkte fra din smartphone pa kundens adresse.
+
+Mesterbud erstatter Word, Excel og haandskrevne tilbud med et moderne, mobilvenligt system der fungerer i alle browsere uden app-download.
+
+## Priser
+- **Gratis**: 1 tilbud gratis, ingen kreditkort, se hvordan det virker
+- **Basis 149 kr/md**: Ubegransede tilbud, 8+ brancheskabeloner, digital signatur fra kunden, PDF-download, tilbud pa mobilen. 14 dages gratis proveperiode.
+- **Pro 299 kr/md**: Alt i Basis + AI-stemmediktring (dikter opgaven med stemme), AI-fotoanalyse (tag et billede - AI foreslar priser), automatisk opfoelgningsmail, prioriteret support. 14 dages gratis proveperiode.
+
+## Noeglefunktioner
+1. **Brancheskabeloner**: 20 brancheskabeloner med realistiske priser klar til brug
+2. **Digital accept**: Kunden modtager tilbud pa mail og accepterer med et klik
+3. **PDF-download**: Professionelt PDF med firmalogo, CVR og kontaktoplysninger
+4. **Mobilvenlig**: Opret tilbud fra telefonen - ingen computer nodvendig
+5. **AI-stemme (Pro)**: Dikter opgaven mundtligt - AI genererer tilbudslinjer
+6. **AI-foto (Pro)**: Tag billede af opgaven - AI analyserer og foreslar linjer
+7. **AI-opfoelgning (Pro)**: Automatisk opfoelgningsmail til kunden
+8. **Fakturering**: Send fakturaer direkte fra systemet
+9. **GDPR-kompatibel**: Data pa europaeiske servere, dansk produkt
+10. **Dansk support**: Support pa dansk pa hverdage
+
+## 20 Branchesider med dedikerede skabeloner
+
+### Maler (https://mesterbud.dk/brancher/maler)
+Tilbudsprogram til malere. Typiske ydelser: indendors/udendors maling, lofter, facader, lister, vinduer. Priser pr. m2 og lbm.
+
+### VVS (https://mesterbud.dk/brancher/vvs)
+Tilbudsprogram til VVS-installatorer. Typiske ydelser: toilet, brusekabine, varmtvandsbeholder, rorskift, afloeb. Priser pr. stk og samlet.
+
+### Elektriker (https://mesterbud.dk/brancher/elektriker)
+Tilbudsprogram til elektrikere. Typiske ydelser: elbil-lader, sikringsanlaeg, belysning, stikkontakter. Priser pr. stk.
+
+### Tomrer (https://mesterbud.dk/brancher/toemrer)
+Tilbudsprogram til tomrere. Typiske ydelser: terrasse, tagkonstruktion, vinduer, doere, trapper. Priser pr. m2 og lbm.
+
+### Murer (https://mesterbud.dk/brancher/murer)
+Tilbudsprogram til murere. Typiske ydelser: facadefugning, fundament, flisearbejde, muret vaeg. Priser pr. m2 og lbm.
+
+### Tagdaekker (https://mesterbud.dk/brancher/tagdaekker)
+Tilbudsprogram til tagdaekkere. Typiske ydelser: tegl, tagpap, eternit, tagrender, rygning, inddaekninger. Priser pr. m2.
+
+### Gulvlaegger (https://mesterbud.dk/brancher/gulvlaegger)
+Tilbudsprogram til gulvlaeggere. Typiske ydelser: parket, vinyl, laminat, klinker, taepper, fodlister. Priser pr. m2.
+
+### Anlaegsgartner (https://mesterbud.dk/brancher/anlaegsgartner)
+Tilbudsprogram til anlaegsgartnerere. Typiske ydelser: fliseterrasse, haek, graesplaene, belaeging, bede. Priser pr. m2 og lbm.
+
+### Mekaniker (https://mesterbud.dk/brancher/mekaniker)
+Tilbudsprogram til mekanikere/autovaerksteder. Typiske ydelser: bremser, olieskift, kilerem, diagnoser. Priser pr. stk og time.
+
+### Kloakmester (https://mesterbud.dk/brancher/kloakmester)
+Tilbudsprogram til kloakmestre. Typiske ydelser: TV-inspektion, relining, separatkloakering, bronde. Priser pr. lbm.
+
+### Snedker (https://mesterbud.dk/brancher/snedker)
+Tilbudsprogram til snedkere. Typiske ydelser: kokken, garderobe, trappe, vinduer, specialmobler. Priser pr. lbm og time.
+
+### Blikkenslager (https://mesterbud.dk/brancher/blikkenslager)
+Tilbudsprogram til blikkenslagere. Typiske ydelser: tagrender, nedlob, inddaekninger, kobberplader, zinkarbejde. Priser pr. lbm.
+
+### Glarmester (https://mesterbud.dk/brancher/glarmester)
+Tilbudsprogram til glarmestre. Typiske ydelser: termorude, vinduesudskiftning, facadeglas, spejle, glasdoere. Priser pr. stk og m2.
+
+### Isolatoer (https://mesterbud.dk/brancher/isolatoer)
+Tilbudsprogram til isolatorer. Typiske ydelser: loftisolering, facadeisolering, kaelder, dampspaerre. Priser pr. m2.
+
+### Brolaegger (https://mesterbud.dk/brancher/brolaegger)
+Tilbudsprogram til broelaaeggere. Typiske ydelser: fliser, brosten, granit, asfalt, kantsten, draen. Priser pr. m2.
+
+### Laasesmed (https://mesterbud.dk/brancher/laasesmed)
+Tilbudsprogram til laasesmede. Typiske ydelser: laaseskift, elektrisk laas, adgangskontrol, noegler. Priser pr. stk.
+
+### Smed (https://mesterbud.dk/brancher/smed)
+Tilbudsprogram til smede. Typiske ydelser: gelaendere, porte, stakit, svejsninger, metalemner. Priser pr. lbm og stk.
+
+### Stilladsbygger (https://mesterbud.dk/brancher/stilladsbygger)
+Tilbudsprogram til stilladsbyggere. Typiske ydelser: opsaetning, leje pr. uge, nedtagning, facadenet. Priser pr. m2 og uge.
+
+### Servicevirksomhed (https://mesterbud.dk/brancher/servicevirksomhed)
+Tilbudsprogram til servicevirksomheder. Typiske ydelser: rengoering, vinduespolering, ejendomsservice, teknisk vedligehold.
+
+### Haandvaerker (https://mesterbud.dk/brancher/anden-haandvaerker)
+Generelt tilbudsprogram til alle haandvaerksfag. Frit redigerbare linjer, egne priser, ingen braanchebegraensning.
+
+## Teknisk information
+- Platform: Web-app, ingen installation
+- Enheder: Computer, tablet, smartphone (alle browsere)
+- Sprog: Dansk
+- Data: Krypteret, europaeiske servere, GDPR-kompatibel
+- Betaling: Stripe, maanedlig abonnement, ingen binding
+- Prøveperiode: 14 dage gratis pa alle betalingsplaner
+
+## Virksomhed
+- Navn: Mesterbud ApS
+- CVR: 46300831
+- Email: support@mesterbud.dk
+- Telefon: 42 77 83 66
+- Land: Danmark
+- Hjemmeside: https://mesterbud.dk/

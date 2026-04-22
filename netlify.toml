@@ -1,4 +1,4 @@
-[build]
+﻿[build]
   functions = "netlify/functions"
   publish = "."
 
@@ -180,7 +180,7 @@
     Permissions-Policy = "camera=(), microphone=(self), geolocation=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
-# Cache statiske assets 1 år
+# Cache statiske assets 1 Ã¥r
 [[headers]]
   for = "/assets/*"
   [headers.values]
@@ -188,3 +188,109 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# Branch clean URL redirects
+[[redirects]]
+  from = "/brancher"
+  to = "/brancher/"
+  status = 301
+
+[[redirects]]
+  from = "/brancher/maler"
+  to = "/brancher/maler.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/vvs"
+  to = "/brancher/vvs.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/elektriker"
+  to = "/brancher/elektriker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/toemrer"
+  to = "/brancher/toemrer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/murer"
+  to = "/brancher/murer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/tagdaekker"
+  to = "/brancher/tagdaekker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/gulvlaegger"
+  to = "/brancher/gulvlaegger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/anlaegsgartner"
+  to = "/brancher/anlaegsgartner.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/mekaniker"
+  to = "/brancher/mekaniker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/kloakmester"
+  to = "/brancher/kloakmester.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/snedker"
+  to = "/brancher/snedker.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/blikkenslager"
+  to = "/brancher/blikkenslager.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/glarmester"
+  to = "/brancher/glarmester.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/isolatoer"
+  to = "/brancher/isolatoer.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/brolaegger"
+  to = "/brancher/brolaegger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/laasesmed"
+  to = "/brancher/laasesmed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/smed"
+  to = "/brancher/smed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/stilladsbygger"
+  to = "/brancher/stilladsbygger.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/servicevirksomhed"
+  to = "/brancher/servicevirksomhed.html"
+  status = 200
+
+[[redirects]]
+  from = "/brancher/anden-haandvaerker"
+  to = "/brancher/anden-haandvaerker.html"
+  status = 200

@@ -1,4 +1,4 @@
-User-agent: *
+﻿User-agent: *
 Allow: /
 Disallow: /dashboard.html
 Disallow: /tilbud-ny.html
@@ -8,4 +8,24 @@ Disallow: /konto.html
 Disallow: /login.html
 Disallow: /.netlify/
 
+# AI crawlers
+User-agent: GPTBot
+Allow: /
+Disallow: /dashboard.html
+Disallow: /tilbud-ny.html
+Disallow: /konto.html
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
 Sitemap: https://mesterbud.dk/sitemap.xml
+Sitemap: https://mesterbud.dk/llms.txt
