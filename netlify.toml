@@ -133,6 +133,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/send-tilbud"
+  to = "/.netlify/functions/send-tilbud"
+  status = 200
+
+[[redirects]]
   from = "/api/send-rykker"
   to = "/.netlify/functions/send-rykker"
   status = 200

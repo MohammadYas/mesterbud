@@ -1,5 +1,6 @@
 const { getStore } = require('@netlify/blobs');
 const { checkRateLimit, rateLimitResponse, CORS_HEADERS, parseBody } = require('./_security');
+const { sendNotifikation } = require('./_notifikationer');
 
 exports.handler = async (event, context) => {
   const headers = { ...CORS_HEADERS };
@@ -25,7 +26,49 @@ exports.handler = async (event, context) => {
       if (faktura.publicToken !== token) {
         return { statusCode: 403, headers, body: JSON.stringify({ error: 'Ugyldigt link' }) };
       }
-      return { statusCode: 200, headers, body: JSON.stringify(faktura) };
+
+      // Tracking: log åbning
+      const nu = new Date().toISOString();
+      if (!faktura.aabninger) faktura.aabninger = [];
+      faktura.aabninger.push({ tidspunkt: nu, userAgent: (event.headers?.['user-agent'] || '').slice(0, 200) });
+
+      // Første åbning
+      if (!faktura.foersteSetDato) {
+        faktura.foersteSetDato = nu;
+        if (faktura.status === 'afventer_betaling') {
+          faktura.status = 'set';
+          faktura.opdateret = nu;
+        }
+        // Notifikation til brugeren
+        try {
+          const profilRaw = await store.get(`profil/${userId}`);
+          if (profilRaw) {
+            const profil = JSON.parse(profilRaw);
+            const brugerEmail = profil.virksomhed?.email || profil.email;
+            if (brugerEmail) {
+              const totalStr = new Intl.NumberFormat('da-DK', { minimumFractionDigits: 0 }).format(faktura.total || 0) + ' kr.';
+              await sendNotifikation({
+                type: 'dokument_set',
+                til: brugerEmail,
+                data: {
+                  dokumentType: 'faktura',
+                  dokumentNr: fakturaId,
+                  kundeNavn: faktura.modtager?.kontaktperson || faktura.modtager?.navn || 'Kunden',
+                  firmaNavnKunde: faktura.modtager?.navn || '',
+                  totalStr,
+                },
+                notifPraeferencer: profil.notifikationer,
+              });
+            }
+          }
+        } catch (e) { console.error('Notifikation fejlede (faktura set):', e.message); }
+      }
+
+      await store.set(`faktura/${userId}/${fakturaId}`, JSON.stringify(faktura));
+
+      // Fjern intern data fra svar
+      const { publicToken: _pt, aabninger: _ab, ...fakturaPublic } = faktura;
+      return { statusCode: 200, headers, body: JSON.stringify(fakturaPublic) };
     } catch (e) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
     }
@@ -51,6 +94,29 @@ exports.handler = async (event, context) => {
         faktura.status = 'betalt_af_kunde';
         faktura.betaletAfKunde = new Date().toISOString();
         await store.set(`faktura/${userId}/${fakturaId}`, JSON.stringify(faktura));
+
+        // Notifikation til brugeren
+        try {
+          const profilRaw = await store.get(`profil/${userId}`);
+          if (profilRaw) {
+            const profil = JSON.parse(profilRaw);
+            const brugerEmail = profil.virksomhed?.email || profil.email;
+            if (brugerEmail) {
+              const totalStr = new Intl.NumberFormat('da-DK', { minimumFractionDigits: 0 }).format(faktura.total || 0) + ' kr.';
+              await sendNotifikation({
+                type: 'faktura_betalt_af_kunde',
+                til: brugerEmail,
+                data: {
+                  dokumentNr: fakturaId,
+                  kundeNavn: faktura.modtager?.kontaktperson || faktura.modtager?.navn || 'Kunden',
+                  firmaNavnKunde: faktura.modtager?.navn || '',
+                  totalStr,
+                },
+                notifPraeferencer: profil.notifikationer,
+              });
+            }
+          }
+        } catch (e) { console.error('Notifikation fejlede (betalt_af_kunde):', e.message); }
       }
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, firmanavn: faktura.afsender?.firmanavn }) };
     } catch (e) {

@@ -188,7 +188,7 @@ tailwind.config = {
     </div>
 
     <!-- Customer actions (no-print) -->
-    <div class="no-print mt-8" x-show="t.status === 'sendt'">
+    <div class="no-print mt-8" x-show="t.status === 'sendt' || t.status === 'set'">
 
       <!-- Accepter -->
       <div x-show="!action" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -261,9 +261,9 @@ tailwind.config = {
     </div>
 
     <!-- Already handled -->
-    <div x-show="!loading && !error && t.status && t.status !== 'sendt' && t.status !== 'kladde' && !actionDone"
+    <div x-show="!loading && !error && t.status && !['sendt','set','kladde'].includes(t.status) && !actionDone"
       class="no-print mt-8 p-6 rounded-xl text-center" :class="t.status === 'accepteret' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
-      <p class="font-bold" x-text="t.status === 'accepteret' ? '✓ Dette tilbud er allerede accepteret' : '✗ Dette tilbud er afvist'"></p>
+      <p class="font-bold" x-text="t.status === 'accepteret' ? '✓ Dette tilbud er allerede accepteret' : t.status === 'afvist' ? '✗ Dette tilbud er afvist' : '✗ Dette tilbud er udløbet'"></p>
     </div>
 
     <!-- Mesterbud footer (no-print) -->
@@ -289,17 +289,20 @@ function previewApp() {
     async init() {
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
+      const token = params.get('token');
       const pdf = params.get('pdf');
       if (!id) { this.error = 'Intet tilbuds-ID angivet.'; this.loading = false; return; }
-      await this.hentTilbud(id);
+      if (!token) { this.error = 'Ugyldigt link – token mangler.'; this.loading = false; return; }
+      this._token = token;
+      await this.hentTilbud(id, token);
       if (pdf === '1' && !this.error) {
         setTimeout(() => this.downloadPDF(), 500);
       }
     },
 
-    async hentTilbud(id) {
+    async hentTilbud(id, token) {
       try {
-        const res = await fetch('/api/get-tilbud-public?id=' + encodeURIComponent(id));
+        const res = await fetch('/api/get-tilbud-public?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(token));
         if (!res.ok) { this.error = 'Tilbuddet blev ikke fundet eller er ikke tilgængeligt.'; this.loading = false; return; }
         this.t = await res.json();
       } catch(e) {
@@ -316,7 +319,7 @@ function previewApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tilbudsId: this.t.id,
-            userId: this.t.userId,
+            token: this._token,
             status,
             signaturNavn: this.signaturNavn,
             besked: this.afvisGrund,
@@ -494,9 +497,9 @@ function previewApp() {
       return { 'netto8': 'Netto 8 dage', 'netto14': 'Netto 14 dage', 'netto30': 'Netto 30 dage', 'straks': 'Betales straks' }[v] || 'Netto 14 dage';
     },
     statusClass(s) {
-      return { 'kladde': 'bg-surface-container-high text-on-surface-variant', 'sendt': 'bg-blue-100 text-blue-800', 'accepteret': 'bg-green-100 text-green-800', 'afvist': 'bg-red-100 text-red-700' }[s] || '';
+      return { 'kladde': 'bg-surface-container-high text-on-surface-variant', 'sendt': 'bg-blue-100 text-blue-800', 'set': 'bg-purple-100 text-purple-800', 'accepteret': 'bg-green-100 text-green-800', 'afvist': 'bg-red-100 text-red-700', 'udloebet': 'bg-surface-container-high text-on-surface-variant' }[s] || '';
     },
-    statusLabel(s) { return { 'kladde': 'Kladde', 'sendt': 'Afventer svar', 'accepteret': 'Accepteret', 'afvist': 'Afvist' }[s] || ''; }
+    statusLabel(s) { return { 'kladde': 'Kladde', 'sendt': 'Afventer svar', 'set': 'Set af kunden', 'accepteret': 'Accepteret', 'afvist': 'Afvist', 'udloebet': 'Udløbet' }[s] || ''; }
   };
 }
 </script>

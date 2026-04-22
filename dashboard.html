@@ -292,7 +292,7 @@ tailwind.config = {
             <tbody>
               <template x-for="t in tilbud.slice(0,5)" :key="t.id">
                 <tr class="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container-low transition-colors cursor-pointer"
-                  @click="window.location.href = '/tilbud-rediger.html?id=' + t.id">
+                  @click="window.location.href = t.publicToken ? '/tilbud-preview.html?id=' + t.id + '&token=' + t.publicToken : '/tilbud-rediger.html?id=' + t.id">
                   <td class="px-5 py-4">
                     <p class="font-medium" x-text="t.modtager?.navn || '—'"></p>
                     <p class="text-xs text-on-surface-variant" x-text="t.id"></p>
@@ -379,11 +379,11 @@ tailwind.config = {
       <!-- Filters + Search -->
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex gap-2 flex-wrap">
-          <template x-for="f in ['alle','kladde','sendt','accepteret','afvist']" :key="f">
+          <template x-for="f in ['alle','kladde','sendt','set','accepteret','afvist','udloebet']" :key="f">
             <button @click="activeFilter = f"
               :class="activeFilter === f ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'"
               class="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all active:scale-95"
-              x-text="f.charAt(0).toUpperCase() + f.slice(1)">
+              x-text="{'alle':'Alle','kladde':'Kladde','sendt':'Sendt','set':'Set','accepteret':'Accepteret','afvist':'Afvist','udloebet':'Udløbet'}[f] || f">
             </button>
           </template>
         </div>
@@ -416,15 +416,24 @@ tailwind.config = {
                   <td class="px-5 py-4 text-right font-bold" x-text="formatKr(t.total || 0)"></td>
                   <td class="px-5 py-4 text-center">
                     <span :class="statusClass(t.status)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" x-text="statusLabel(t.status)"></span>
+                    <p x-show="(t.status === 'set' || t.status === 'sendt') && t.foersteSetDato" class="text-xs text-purple-700 mt-0.5" x-text="setDato(t)"></p>
+                    <p x-show="t.status === 'sendt' && !t.foersteSetDato" class="text-xs text-on-surface-variant/60 mt-0.5">Ikke åbnet</p>
                   </td>
                   <td class="px-5 py-4 text-right text-on-surface-variant" x-text="formatDato(t.opdateret)"></td>
                   <td class="px-5 py-4">
                     <div class="flex items-center justify-end gap-1">
+                      <!-- Send tilbud: kun for kladde med modtager-email -->
+                      <button x-show="t.status === 'kladde' && t.modtager?.email"
+                        @click.stop="sendTilbud(t)" :disabled="sendingTilbudId === t.id" title="Send tilbud til kunden"
+                        class="p-1.5 rounded-lg hover:bg-primary/10 transition-colors text-primary disabled:opacity-50">
+                        <span x-show="sendingTilbudId !== t.id" class="material-symbols-outlined text-base">send</span>
+                        <span x-show="sendingTilbudId === t.id" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                      </button>
                       <a :href="'/tilbud-rediger.html?id=' + t.id" title="Rediger"
                         class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
                         <span class="material-symbols-outlined text-base">edit</span>
                       </a>
-                      <a :href="'/tilbud-preview.html?id=' + t.id" target="_blank" title="Preview"
+                      <a x-show="t.publicToken" :href="'/tilbud-preview.html?id=' + t.id + '&token=' + t.publicToken" target="_blank" title="Preview"
                         class="p-1.5 rounded-lg hover:bg-surface-container transition-colors text-on-surface-variant hover:text-on-surface">
                         <span class="material-symbols-outlined text-base">visibility</span>
                       </a>
@@ -628,7 +637,7 @@ function app() {
     search: '',
     userEmail: '',
     userName: '',
-    userPlan: 'trial',
+    userPlan: '',
     dageTilbage: null,
     naesteBetaling: '',
     gaestBesked: '',
@@ -650,6 +659,9 @@ function app() {
     opfoelgningLoading: false,
     opfoelgningSender: false,
     opfoelgningFejl: '',
+
+    // Send tilbud
+    sendingTilbudId: null,
 
     // Fakturaer
     fakturaer: [],
@@ -703,7 +715,7 @@ function app() {
         });
         if (res.ok) {
           const u = await res.json();
-          this.userPlan = u.plan || 'trial';
+          this.userPlan = u.plan || '';
           this.dageTilbage = u.dageTilbage ?? null;
           this.naesteBetaling = u.naesteBetaling || '';
         }
@@ -813,13 +825,25 @@ function app() {
       return {
         'kladde': 'bg-surface-container-high text-on-surface-variant',
         'sendt': 'bg-blue-100 text-blue-800',
+        'set': 'bg-purple-100 text-purple-800',
         'accepteret': 'bg-green-100 text-green-800',
         'afvist': 'bg-red-100 text-red-700',
+        'udloebet': 'bg-surface-container-high text-on-surface-variant',
       }[s] || 'bg-surface-container-high text-on-surface-variant';
     },
 
     statusLabel(s) {
-      return { 'kladde': 'Kladde', 'sendt': 'Sendt', 'accepteret': 'Accepteret', 'afvist': 'Afvist' }[s] || 'Kladde';
+      return { 'kladde': 'Kladde', 'sendt': 'Sendt', 'set': 'Set', 'accepteret': 'Accepteret', 'afvist': 'Afvist', 'udloebet': 'Udløbet' }[s] || 'Kladde';
+    },
+
+    setDato(t) {
+      if (!t.foersteSetDato) return null;
+      const diffMs = Date.now() - new Date(t.foersteSetDato).getTime();
+      const diffH = Math.floor(diffMs / 3600000);
+      if (diffH < 1) return 'Åbnet for under 1 time siden';
+      if (diffH < 24) return 'Åbnet for ' + diffH + ' time' + (diffH > 1 ? 'r' : '') + ' siden';
+      const diffD = Math.floor(diffH / 24);
+      return 'Åbnet for ' + diffD + ' dag' + (diffD > 1 ? 'e' : '') + ' siden';
     },
 
     formatKr(amount) {
@@ -829,6 +853,28 @@ function app() {
     formatDato(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
+    },
+
+    async sendTilbud(t) {
+      if (this.sendingTilbudId) return;
+      this.sendingTilbudId = t.id;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/send-tilbud', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tilbudsId: t.id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // Update local state
+          const idx = this.tilbud.findIndex(x => x.id === t.id);
+          if (idx >= 0) { this.tilbud[idx].status = 'sendt'; this.tilbud[idx].publicToken = data.previewLink?.split('token=')[1]; }
+        } else {
+          alert(data.error || 'Fejl ved afsendelse');
+        }
+      } catch(e) { alert('Netværksfejl'); }
+      this.sendingTilbudId = null;
     },
 
     confirmSlet(t) { this.sletTarget = t; this.sletModal = true; },

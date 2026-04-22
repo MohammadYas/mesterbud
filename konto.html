@@ -162,6 +162,12 @@ tailwind.config = {
         <span class="material-symbols-outlined text-base">tune</span>
         Indstillinger
       </button>
+      <button @click="aktuelFane = 'notifikationer'"
+        :class="aktuelFane === 'notifikationer' ? 'active' : ''"
+        class="tab-btn">
+        <span class="material-symbols-outlined text-base">notifications</span>
+        Notifikationer
+      </button>
       <button @click="aktuelFane = 'konto'"
         :class="aktuelFane === 'konto' ? 'active' : ''"
         class="tab-btn">
@@ -626,6 +632,62 @@ tailwind.config = {
 
     </div><!-- end indstillinger tab -->
 
+    <!-- ===== TAB: NOTIFIKATIONER ===== -->
+    <div x-show="aktuelFane === 'notifikationer'" class="space-y-6">
+
+      <section class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-outline-variant/20 bg-surface-container-low/40 flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary">notifications</span>
+          <div>
+            <h2 class="font-bold text-base">E-mail notifikationer</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5">Vælg hvilke hændelser du vil modtage besked om</p>
+          </div>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+
+          <!-- Alternativ notif-email -->
+          <div>
+            <label class="field-label">Notifikations-email (valgfri)</label>
+            <input x-model="notifikationer.notifEmail" type="email" placeholder="Efterlad tom for at bruge din login-email"
+              class="field-input"/>
+            <p class="text-xs text-on-surface-variant mt-1">Hvis udfyldt sendes notifikationer hertil i stedet for din login-email.</p>
+          </div>
+
+          <div class="border-t border-outline-variant/20 pt-4 space-y-3">
+            <!-- Toggle helper -->
+            <template x-for="item in notifItems" :key="item.key">
+              <label class="flex items-center justify-between gap-4 cursor-pointer group">
+                <div>
+                  <p class="text-sm font-medium text-on-surface" x-text="item.label"></p>
+                  <p class="text-xs text-on-surface-variant" x-text="item.desc"></p>
+                </div>
+                <button type="button" @click="notifikationer[item.key] = !notifikationer[item.key]"
+                  :class="notifikationer[item.key] ? 'bg-primary' : 'bg-outline-variant'"
+                  class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none">
+                  <span :class="notifikationer[item.key] ? 'translate-x-5' : 'translate-x-0.5'"
+                    class="inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform duration-200"></span>
+                </button>
+              </label>
+            </template>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-outline-variant/20 bg-surface-container-low/40 flex items-center justify-between gap-4">
+          <p x-show="gemtNotifikationer" x-cloak class="text-sm text-green-700 font-medium flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            Notifikationer gemt
+          </p>
+          <span x-show="!gemtNotifikationer"></span>
+          <button @click="gemNotifikationer()" :disabled="gemmerNotifikationer"
+            class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm active:scale-95 transition-all shadow-sm shadow-primary/20 disabled:opacity-60">
+            <span x-show="gemmerNotifikationer" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+            <span x-show="!gemmerNotifikationer" class="material-symbols-outlined text-base">save</span>
+            Gem indstillinger
+          </button>
+        </div>
+      </section>
+
+    </div><!-- end notifikationer tab -->
+
     <!-- ===== TAB: KONTO ===== -->
     <div x-show="aktuelFane === 'konto'" class="space-y-6">
 
@@ -778,6 +840,27 @@ function kontoApp() {
     virksomhed: { firmanavn: '', adresse: '', cvr: '', telefon: '', email: '', logo: '', regNr: '', kontoNr: '', mobilePay: '' },
     gemmerVirksomhed: false,
     gemtVirksomhed: false,
+    notifikationer: {
+      dokument_set: true,
+      tilbud_accepteret: true,
+      tilbud_afvist: true,
+      tilbud_udloeber_snart: true,
+      faktura_forfalder_snart: true,
+      faktura_forfalden: true,
+      faktura_betalt_af_kunde: true,
+      notifEmail: '',
+    },
+    gemmerNotifikationer: false,
+    gemtNotifikationer: false,
+    notifItems: [
+      { key: 'dokument_set',           label: 'Tilbud/faktura set',         desc: 'Besked når kunden åbner dit tilbud eller faktura for første gang' },
+      { key: 'tilbud_accepteret',      label: 'Tilbud accepteret',          desc: 'Besked når kunden accepterer dit tilbud' },
+      { key: 'tilbud_afvist',          label: 'Tilbud afvist',              desc: 'Besked når kunden afviser dit tilbud' },
+      { key: 'tilbud_udloeber_snart',  label: 'Tilbud udløber snart',       desc: 'Besked 3 dage før et tilbud udløber' },
+      { key: 'faktura_forfalder_snart',label: 'Faktura forfalder snart',    desc: 'Besked 3 dage før en faktura forfalder' },
+      { key: 'faktura_forfalden',      label: 'Faktura forfalden',          desc: 'Besked når en faktura er forfalden til betaling' },
+      { key: 'faktura_betalt_af_kunde',label: 'Faktura markeret betalt',    desc: 'Besked når kunden bekræfter betaling via kundelinket' },
+    ],
     checkoutLoading: false,
     nyPw: '',
     nyPw2: '',
@@ -804,8 +887,29 @@ function kontoApp() {
           this.dageTilbage = u.dageTilbage ?? null;
           this.stripeStatus = u.stripeStatus || null;
           if (u.virksomhed) this.virksomhed = { ...this.virksomhed, ...u.virksomhed };
+          if (u.notifikationer) this.notifikationer = { ...this.notifikationer, ...u.notifikationer };
         }
       } catch(e) {}
+    },
+
+    async gemNotifikationer() {
+      this.gemmerNotifikationer = true;
+      try {
+        const s = JSON.parse(localStorage.getItem('gotrue-session') || '{}');
+        const res = await fetch('/api/save-user', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notifikationer: this.notifikationer })
+        });
+        if (res.ok) {
+          this.gemtNotifikationer = true;
+          setTimeout(() => { this.gemtNotifikationer = false; }, 3000);
+        } else {
+          const d = await res.json().catch(() => ({}));
+          this.visToast(d.error || 'Fejl ved gemning – prøv igen', 'error');
+        }
+      } catch(e) { this.visToast('Netværksfejl – tjek din forbindelse', 'error'); }
+      this.gemmerNotifikationer = false;
     },
 
     async gemVirksomhed() {

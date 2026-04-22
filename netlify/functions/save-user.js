@@ -70,6 +70,23 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Gem notifikationspræferencer
+    if (body.notifikationer && typeof body.notifikationer === 'object') {
+      const n = body.notifikationer;
+      const BOOL = (v, def = true) => typeof v === 'boolean' ? v : def;
+      profil.notifikationer = {
+        dokument_set:          BOOL(n.dokument_set),
+        tilbud_accepteret:     BOOL(n.tilbud_accepteret),
+        tilbud_afvist:         BOOL(n.tilbud_afvist),
+        tilbud_udloeber_snart: BOOL(n.tilbud_udloeber_snart),
+        faktura_forfalder_snart: BOOL(n.faktura_forfalder_snart),
+        faktura_forfalden:     BOOL(n.faktura_forfalden),
+        faktura_betalt_af_kunde: BOOL(n.faktura_betalt_af_kunde),
+        // valgfri alternativ notifikationsemail
+        notifEmail: sanitizeEmail(n.notifEmail) || '',
+      };
+    }
+
     profil.opdateret = new Date().toISOString();
     await store.set(`profil/${userId}`, JSON.stringify(profil));
 
